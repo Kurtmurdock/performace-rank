@@ -4,7 +4,7 @@ import { useState } from "react";
 import { X, FileScan, Check } from "lucide-react";
 import { chamarApi } from "@/lib/sessao";
 
-const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Rio das Ostras","Infinity","Em Transporte"];
+const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Rio das Ostras","Infinity","Baby Motos","Em Transporte"];
 const FORNECEDORES = ["ALEXANDRE&ALAN","CLEBER","MARCIO","GIRO","LOCAMERICA","FELIPPE","MARCUS","VICTOR","BOMCAR","FLUTUANTE"];
 const MARCAS = ["YAMAHA","HONDA","SHINERAY"];
 

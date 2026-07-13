@@ -22,7 +22,7 @@ type Moto = {
 
 type ItemTabela = { chave: string; preco: number };
 
-const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Rio das Ostras","Infinity","Em Transporte"];
+const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Rio das Ostras","Infinity","Baby Motos","Em Transporte"];
 const FORNECEDORES = ["ALEXANDRE&ALAN","CLEBER","MARCIO","GIRO","LOCAMERICA","FELIPPE","MARCUS","VICTOR","BOMCAR","FLUTUANTE"];
 const MARCAS = ["YAMAHA","HONDA","SHINERAY"];
 const BANCOS = ["A VISTA","BRADESCO LOC","BV AUTOMODELO","BV BOMCAR","BV CLEBER","BV CONFORT","BV LELE","BV SALINAS","BV VISION","PAN AUTOMODELO","PAN CFT","PAN UNIÃO","PAN VISION","SANT ATLÂNTICA","SANT LELE","SANT SALINAS","SANT UNIÃO"];
@@ -84,6 +84,7 @@ export default function EstoquePage() {
   const [motoFotos, setMotoFotos] = useState<Moto | null>(null);
   const [cadastrando, setCadastrando] = useState(false);
   const sessao = getSessao();
+  const podeEditar = sessao?.cargo === "gestor" || sessao?.cargo === "gerente";
 
   const [fStatus, setFStatus] = useState<string[]>([]);
   const [fPlaca, setFPlaca] = useState<string[]>([]);
@@ -240,10 +241,12 @@ export default function EstoquePage() {
             className="w-full h-9 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold flex items-center justify-center gap-1.5 hover:border-accent transition-colors">
             <Camera size={13} /> {moto.fotos && moto.fotos.length ? "Adicionar Fotos" : "Enviar Fotos"}
           </button>
-          <button onClick={() => setMotoEditando(moto)}
-            className="w-full h-9 rounded-lg bg-accent/20 border border-accent/40 text-accent text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-accent/30 transition-colors">
-            <Pencil size={13} /> Editar
-          </button>
+          {podeEditar && (
+            <button onClick={() => setMotoEditando(moto)}
+              className="w-full h-9 rounded-lg bg-accent/20 border border-accent/40 text-accent text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-accent/30 transition-colors">
+              <Pencil size={13} /> Editar
+            </button>
+          )}
         </div>
       </GlowCard>
     );
@@ -277,10 +280,12 @@ export default function EstoquePage() {
             <a href="/" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-accent transition-colors">
               <ArrowLeft size={15} /> Voltar ao Rank
             </a>
-            <button onClick={() => setCadastrando(true)}
-              className="h-10 px-4 rounded-lg bg-accent text-white font-bold text-sm flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity">
-              <Plus size={15} /> Cadastrar Novo Veículo
-            </button>
+            {podeEditar && (
+              <button onClick={() => setCadastrando(true)}
+                className="h-10 px-4 rounded-lg bg-accent text-white font-bold text-sm flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity">
+                <Plus size={15} /> Cadastrar Novo Veículo
+              </button>
+            )}
           </div>
 
           <h1 className="text-3xl md:text-4xl font-black mb-4">Estoque</h1>

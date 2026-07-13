@@ -5,11 +5,12 @@ import { Sidebar, TopBar, BellButton } from "@/components/Sidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import { getSessao, chamarApi } from "@/lib/sessao";
-import { Camera, Lock, Check } from "lucide-react";
+import { Camera, Lock, Check, Wallet, FileText, Home, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button-1";
 
 type Perfil = {
   nome: string; email: string; telefone: string; cargo: string; loja: string;
-  fotoPerfilUrl: string; temDocumento: boolean; temComprovante: boolean;
+  fotoPerfilUrl: string; temDocumento: boolean; temComprovante: boolean; chavePix: string;
 };
 
 export default function PerfilPage() {
@@ -21,12 +22,24 @@ export default function PerfilPage() {
   const [enviandoFoto, setEnviandoFoto] = useState(false);
   const [msgFoto, setMsgFoto] = useState("");
 
+  const [chavePix, setChavePix] = useState("");
+  const [salvandoPix, setSalvandoPix] = useState(false);
+  const [msgPix, setMsgPix] = useState("");
+
+  const [enviandoDocumento, setEnviandoDocumento] = useState(false);
+  const [enviandoComprovante, setEnviandoComprovante] = useState(false);
+  const [msgDocumento, setMsgDocumento] = useState("");
+  const [msgComprovante, setMsgComprovante] = useState("");
+
   const sessao = getSessao();
 
   useEffect(() => {
     if (!sessao) return;
     chamarApi({ acao: "rh_perfil_obter", nome: sessao.nome }).then((data) => {
-      if (data && data.ok) setPerfil(data.perfil);
+      if (data && data.ok) {
+        setPerfil(data.perfil);
+        setChavePix(data.perfil.chavePix || "");
+      }
       setCarregando(false);
     });
   }, []);
@@ -50,6 +63,68 @@ export default function PerfilPage() {
     } else {
       setMsgSenha("❌ " + ((data && data.erro) || "Erro ao trocar senha."));
     }
+  };
+
+  const salvarPix = async () => {
+    setSalvandoPix(true);
+    setMsgPix("");
+    const data = await chamarApi({
+      acao: "rh_atualizar_pix",
+      nome: sessao?.nome,
+      chavePix,
+      solicitante: sessao?.nome,
+    });
+    if (data && data.ok) {
+      setMsgPix("✅ Chave PIX salva!");
+    } else {
+      setMsgPix("❌ " + ((data && data.erro) || "Erro ao salvar chave PIX."));
+    }
+    setSalvandoPix(false);
+  };
+
+  const arquivoParaBase64 = (arquivo: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const leitor = new FileReader();
+      leitor.onload = (ev) => resolve((ev.target?.result as string).split(",")[1]);
+      leitor.onerror = reject;
+      leitor.readAsDataURL(arquivo);
+    });
+
+  const uploadDocumento = async (e: React.ChangeEvent<HTMLInputElement>, tipo: "documento" | "comprovante") => {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+    const setEnviando = tipo === "documento" ? setEnviandoDocumento : setEnviandoComprovante;
+    const setMsg = tipo === "documento" ? setMsgDocumento : setMsgComprovante;
+    setEnviando(true);
+    setMsg("");
+    try {
+      const base64 = await arquivoParaBase64(arquivo);
+      const data = await chamarApi({
+        acao: "rh_perfil_upload_documento",
+        nome: sessao?.nome,
+        tipo,
+        arquivoBase64: base64,
+        mimeType: arquivo.type,
+      });
+      if (data && data.ok) {
+        setPerfil((p) =>
+          p ? { ...p, ...(tipo === "documento" ? { temDocumento: true } : { temComprovante: true }) } : p
+        );
+        setMsg("✅ Enviado com sucesso!");
+      } else {
+        setMsg("❌ " + ((data && data.erro) || "Erro ao enviar."));
+      }
+    } catch {
+      setMsg("❌ Erro ao enviar arquivo.");
+    } finally {
+      setEnviando(false);
+      e.target.value = "";
+    }
+  };
+
+  const sair = () => {
+    try { localStorage.removeItem("performace_sessao"); } catch {}
+    window.location.href = "/login";
   };
 
   const uploadFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,15 +205,79 @@ export default function PerfilPage() {
               </Card>
 
               <Card className="border-border">
-                <CardContent className="py-5 flex items-center justify-around text-sm">
-                  <div className="flex items-center gap-2">
-                    <Check size={16} className={perfil.temDocumento ? "text-green-500" : "text-muted-foreground"} />
-                    Documento pessoal
+                <CardContent className="py-5 space-y-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Check size={16} className={perfil.temDocumento ? "text-green-500" : "text-muted-foreground"} />
+                      Documento pessoal
+                    </div>
+                    <label>
+                      <Button
+                        size="small"
+                        variant="secondary"
+                        loading={enviandoDocumento}
+                        prefix={<FileText size={13} />}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          (e.currentTarget.nextElementSibling as HTMLInputElement)?.click();
+                        }}
+                      >
+                        {perfil.temDocumento ? "Reenviar" : "Enviar"}
+                      </Button>
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        className="hidden"
+                        onChange={(e) => uploadDocumento(e, "documento")}
+                      />
+                    </label>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Check size={16} className={perfil.temComprovante ? "text-green-500" : "text-muted-foreground"} />
-                    Comprovante de residência
+                  {msgDocumento && <p className="text-xs">{msgDocumento}</p>}
+
+                  <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+                    <div className="flex items-center gap-2">
+                      <Check size={16} className={perfil.temComprovante ? "text-green-500" : "text-muted-foreground"} />
+                      Comprovante de residência
+                    </div>
+                    <label>
+                      <Button
+                        size="small"
+                        variant="secondary"
+                        loading={enviandoComprovante}
+                        prefix={<Home size={13} />}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          (e.currentTarget.nextElementSibling as HTMLInputElement)?.click();
+                        }}
+                      >
+                        {perfil.temComprovante ? "Reenviar" : "Enviar"}
+                      </Button>
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        className="hidden"
+                        onChange={(e) => uploadDocumento(e, "comprovante")}
+                      />
+                    </label>
                   </div>
+                  {msgComprovante && <p className="text-xs">{msgComprovante}</p>}
+                </CardContent>
+              </Card>
+
+              <Card className="border-border">
+                <CardContent className="py-6">
+                  <p className="font-semibold mb-3 flex items-center gap-2"><Wallet size={16} /> Chave PIX</p>
+                  <input
+                    type="text"
+                    placeholder="CPF, e-mail, telefone ou chave aleatória"
+                    value={chavePix}
+                    onChange={(e) => setChavePix(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 focus:border-accent rounded-lg h-10 px-3 text-sm outline-none"
+                  />
+                  {msgPix && <p className="text-xs mt-2">{msgPix}</p>}
+                  <Button loading={salvandoPix} onClick={salvarPix} fullWidth className="mt-2">
+                    Salvar chave PIX
+                  </Button>
                 </CardContent>
               </Card>
 
@@ -167,6 +306,10 @@ export default function PerfilPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              <Button variant="secondary" fullWidth onClick={sair} className="!bg-red-500/10 !border-red-500/30 !text-red-400 hover:!bg-red-500/20" prefix={<LogOut size={15} />}>
+                Sair
+              </Button>
             </div>
           )}
         </div>

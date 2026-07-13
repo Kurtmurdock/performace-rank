@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, Lock, Unlock, Upload } from "lucide-react";
-import { chamarApi } from "@/lib/sessao";
+import { chamarApi, getSessao } from "@/lib/sessao";
 
 type Moto = {
   linha: number;
@@ -14,7 +14,7 @@ type Moto = {
   manual?: string; ondeManual?: string; chaveReserva?: string; ondeChaveReserva?: string; ondePlaca?: string;
 };
 
-const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Rio das Ostras","Infinity"];
+const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Rio das Ostras","Infinity","Baby Motos"];
 const FORNECEDORES = ["ALEXANDRE&ALAN","CLEBER","MARCIO","GIRO","LOCAMERICA","FELIPPE","MARCUS","VICTOR","BOMCAR","FLUTUANTE"];
 
 function CampoTravavel({
@@ -60,7 +60,7 @@ export function EditarMotoModal({
   const [statusPlaca, setStatusPlaca] = useState(moto.statusPlaca || "");
   const [gravame, setGravame] = useState(moto.gravame || "");
   const [atpvE, setAtpvE] = useState(moto.atpvE || "");
-  const [medalha, setMedalha] = useState(moto.medalha || "Bronze");
+  const [medalha, setMedalha] = useState(moto.medalha === "Ouro" ? "Dourada" : moto.medalha || "Bronze");
   const [manual, setManual] = useState(moto.manual || "");
   const [ondeManual, setOndeManual] = useState(moto.ondeManual || "");
   const [chaveReserva, setChaveReserva] = useState(moto.chaveReserva || "");
@@ -70,6 +70,9 @@ export function EditarMotoModal({
   const [senhaMaster, setSenhaMaster] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
+
+  const sessao = getSessao();
+  const ehGestor = sessao?.cargo === "gestor";
 
   // ── Status da Negociação — gatilho do fechamento de venda ──
   const statusAtual = moto.status.includes("Vendido") ? "vendido" : moto.status.includes("Negociação") ? "negociacao" : "disponivel";
@@ -409,12 +412,23 @@ export function EditarMotoModal({
             </div>
           </div>
 
-          {/* Medalha */}
+          {/* Medalha — só gestor pode alterar */}
           <div>
-            <label className="text-xs font-semibold uppercase text-muted-foreground">Medalha</label>
-            <select value={medalha} onChange={(e) => setMedalha(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-              <option>Bronze</option><option>Prata</option><option>Ouro</option>
+            <label className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1">
+              Medalha
+              {!ehGestor && (
+                <span className="text-[10px] normal-case text-muted-foreground flex items-center gap-1">
+                  <Lock size={9} /> apenas gestores podem alterar
+                </span>
+              )}
+            </label>
+            <select
+              value={medalha}
+              disabled={!ehGestor}
+              onChange={(e) => setMedalha(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <option>Bronze</option><option>Prata</option><option>Dourada</option>
             </select>
           </div>
 

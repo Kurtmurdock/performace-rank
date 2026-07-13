@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { TarjaNoticias } from "@/components/TarjaNoticias";
 
 export const metadata: Metadata = {
   title: "Performace · Rank de Vendas",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className="h-full antialiased">
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <TarjaNoticias />
+        {children}
+      </body>
     </html>
   );
 }
