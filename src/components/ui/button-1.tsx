@@ -21,12 +21,12 @@ const types = {
 };
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "prefix"> {
   size?: keyof typeof sizes;
   variant?: keyof typeof types;
   loading?: boolean;
   fullWidth?: boolean;
-  prefix?: React.ReactNode;
+  icon?: React.ReactNode;
 }
 
 export const Button = ({
@@ -35,7 +35,7 @@ export const Button = ({
   loading = false,
   fullWidth = false,
   disabled = false,
-  prefix,
+  icon,
   children,
   className = "",
   ...rest
@@ -52,7 +52,7 @@ export const Button = ({
       ].join(" ")}
       {...rest}
     >
-      {loading ? <Spinner size={size === "large" ? 16 : 14} /> : prefix}
+      {loading ? <Spinner size={size === "large" ? 16 : 14} /> : icon}
       <span className="whitespace-nowrap">{children}</span>
     </button>
   );

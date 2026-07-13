@@ -216,7 +216,7 @@ export default function PerfilPage() {
                         size="small"
                         variant="secondary"
                         loading={enviandoDocumento}
-                        prefix={<FileText size={13} />}
+                        icon={<FileText size={13} />}
                         onClick={(e) => {
                           e.preventDefault();
                           (e.currentTarget.nextElementSibling as HTMLInputElement)?.click();
@@ -244,7 +244,7 @@ export default function PerfilPage() {
                         size="small"
                         variant="secondary"
                         loading={enviandoComprovante}
-                        prefix={<Home size={13} />}
+                        icon={<Home size={13} />}
                         onClick={(e) => {
                           e.preventDefault();
                           (e.currentTarget.nextElementSibling as HTMLInputElement)?.click();
@@ -307,7 +307,7 @@ export default function PerfilPage() {
                 </CardContent>
               </Card>
 
-              <Button variant="secondary" fullWidth onClick={sair} className="!bg-red-500/10 !border-red-500/30 !text-red-400 hover:!bg-red-500/20" prefix={<LogOut size={15} />}>
+              <Button variant="secondary" fullWidth onClick={sair} className="!bg-red-500/10 !border-red-500/30 !text-red-400 hover:!bg-red-500/20" icon={<LogOut size={15} />}>
                 Sair
               </Button>
             </div>
