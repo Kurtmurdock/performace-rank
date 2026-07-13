@@ -203,7 +203,7 @@ export function EventoFormModal({
                         className="w-full bg-white/5 border border-white/10 rounded-lg h-9 pl-8 pr-3 text-sm" />
                     </div>
                     <div className="max-h-32 overflow-y-auto space-y-1">
-                      {pessoasFiltradas.slice(0, 20).map((p) => (
+                      {pessoasFiltradas.map((p) => (
                         <label key={p.nome} className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-white/5">
                           <input type="checkbox"
                             checked={individuaisSelecionados.some((x) => x.nome === p.nome)}

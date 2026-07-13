@@ -6,6 +6,7 @@ import { Trophy, Medal, RefreshCw, Clock } from "lucide-react";
 import { Sidebar, TopBar, BellButton } from "@/components/Sidebar";
 import { LeaderboardRankings, LeaderboardRankingItem } from "@/components/ui/leaderboard-rankings";
 import { useConfigVisual } from "@/lib/useConfigVisual";
+import { PremiacaoSemanalModal } from "@/components/PremiacaoSemanalModal";
 
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzRPeZO6kTKnnKD6KOtsBG3YuRbKMLUO9m0Nc4rUTb0ECG_UsW_qiwgzp1hc2q6meBUvQ/exec";
@@ -17,7 +18,28 @@ const MESES = [
 
 type LojaRank = { name: string; sales: number };
 
-const BANCOS = ["BV", "Santander", "Itaú", "Omni", "PAN", "Honda", "Auto Certo", "Todos os Bancos"];
+const BANCOS: { nome: string; url: string }[] = [
+  { nome: "BV", url: "https://parceiro.bv.com.br/ng-gpar-base-login/" },
+  { nome: "Santander", url: "https://brpioneer.accenture.com/originacao-auto/login" },
+  { nome: "Itaú", url: "https://credlineitau.com.br/simulator" },
+  { nome: "Omni", url: "https://omni-mais.omni.com.br/app/rodas/visao-geral" },
+  { nome: "PAN", url: "https://veiculos.bancopan.com.br/login" },
+  { nome: "Honda", url: "https://vendadigital.bancohonda.com.br/" },
+  { nome: "Auto Certo", url: "https://sistema.autocerto.com/auth/Login" },
+];
+
+function abrirBanco(url: string) {
+  window.open(url, "_blank", "noopener");
+}
+
+function abrirTodosBancos() {
+  // Navegadores tratam vários window.open() disparados juntos como
+  // pop-up indesejado depois do primeiro — espaçar com um pequeno
+  // delay contorna esse bloqueio (mesma lógica do site antigo).
+  BANCOS.forEach((b, i) => {
+    setTimeout(() => window.open(b.url, "_blank", "noopener"), i * 300);
+  });
+}
 
 export default function RankDeVendas() {
   const [dados, setDados] = useState<LojaRank[]>([]);
@@ -28,6 +50,7 @@ export default function RankDeVendas() {
   const [ano] = useState(new Date().getFullYear());
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState("");
   const [vendedores, setVendedores] = useState<LeaderboardRankingItem[]>([]);
+  const [premiacaoAberta, setPremiacaoAberta] = useState(false);
 
   const carregarDados = useCallback(async () => {
     try {
@@ -114,6 +137,16 @@ export default function RankDeVendas() {
       <div className="flex flex-col md:flex-row gap-8">
         <Sidebar />
         <div className="flex-1">
+      {/* Botão de Premiação Semanal — acima do Rank, não altera nada dele */}
+      <div className="mb-4">
+        <button
+          onClick={() => setPremiacaoAberta(true)}
+          className="h-11 px-5 rounded-lg bg-gradient-to-r from-yellow-600/20 to-yellow-500/10 border border-yellow-500/40 text-yellow-300 font-bold text-sm flex items-center gap-2 hover:border-yellow-400 transition-colors"
+        >
+          🏆 Premiação Semanal
+        </button>
+      </div>
+
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 fade-slide-up">
         <div>
@@ -228,16 +261,25 @@ export default function RankDeVendas() {
         <div className="flex flex-wrap gap-2">
           {BANCOS.map((banco) => (
             <button
-              key={banco}
+              key={banco.nome}
+              onClick={() => abrirBanco(banco.url)}
               className="px-4 py-2 rounded-lg bg-card border border-border text-sm font-medium hover:border-accent transition-colors"
             >
-              {banco}
+              {banco.nome}
             </button>
           ))}
+          <button
+            onClick={abrirTodosBancos}
+            className="px-4 py-2 rounded-lg bg-card border border-yellow-500/40 text-yellow-400 text-sm font-medium hover:border-yellow-400 transition-colors"
+          >
+            Todos os Bancos
+          </button>
         </div>
       </div>
         </div>
       </div>
+
+      {premiacaoAberta && <PremiacaoSemanalModal onClose={() => setPremiacaoAberta(false)} />}
     </main>
   );
 }

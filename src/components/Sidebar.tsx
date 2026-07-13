@@ -1,8 +1,12 @@
 "use client";
 
-import { Bell, Radio, Wallet, Megaphone, Link2, Users, ClipboardList, Share2, FileText, Contact, Calendar, LogOut } from "lucide-react";
+import { useState } from "react";
+import { Bell, Radio, Wallet, Megaphone, Link2, Users, ClipboardList, Share2, FileText, Contact, Calendar, LogOut, AlertTriangle } from "lucide-react";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import { getSessao } from "@/lib/sessao";
+import { NotificacoesModal } from "@/components/NotificacoesModal";
+import { AlertasModal } from "@/components/AlertasModal";
+import { AnuncioModal } from "@/components/AnuncioModal";
 
 // permitido: undefined = todos os cargos logados veem o item.
 // Quando definido, só os cargos listados veem.
@@ -90,12 +94,45 @@ export function TopBar({ nomeUsuario = "Alan Lima" }: { nomeUsuario?: string }) 
 }
 
 export function BellButton() {
+  const [aberto, setAberto] = useState(false);
   return (
-    <button className="fixed top-14 right-6 z-40 w-11 h-11 rounded-full bg-card border border-border shadow-lg flex items-center justify-center hover:border-accent transition-colors">
-      <Bell size={18} />
-      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent text-[10px] flex items-center justify-center font-bold">
-        !
-      </span>
-    </button>
+    <>
+      <button onClick={() => setAberto(true)} className="fixed top-14 right-6 z-40 w-11 h-11 rounded-full bg-card border border-border shadow-lg flex items-center justify-center hover:border-accent transition-colors">
+        <Bell size={18} />
+      </button>
+      {aberto && <NotificacoesModal onClose={() => setAberto(false)} />}
+    </>
+  );
+}
+
+// Botão de Alertas — negociação parada, custo faltando, pendência de
+// conexão. Visível pra qualquer pessoa logada (cada seção interna do
+// modal já filtra por cargo o que faz sentido mostrar).
+export function AlertasButton() {
+  const [aberto, setAberto] = useState(false);
+  const sessao = getSessao();
+  if (!sessao) return null;
+  return (
+    <>
+      <button onClick={() => setAberto(true)} className="fixed top-[6.5rem] right-6 z-40 w-11 h-11 rounded-full bg-card border border-red-500/40 shadow-lg flex items-center justify-center hover:border-red-500 transition-colors text-red-400">
+        <AlertTriangle size={18} />
+      </button>
+      {aberto && <AlertasModal onClose={() => setAberto(false)} />}
+    </>
+  );
+}
+
+// Botão de Anúncio Geral — só gestor vê e consegue enviar.
+export function AnuncioButton() {
+  const [aberto, setAberto] = useState(false);
+  const sessao = getSessao();
+  if (sessao?.cargo !== "gestor") return null;
+  return (
+    <>
+      <button onClick={() => setAberto(true)} className="fixed top-[9.5rem] right-6 z-40 w-11 h-11 rounded-full bg-card border border-yellow-500/40 shadow-lg flex items-center justify-center hover:border-yellow-500 transition-colors text-yellow-400">
+        <Megaphone size={18} />
+      </button>
+      {aberto && <AnuncioModal onClose={() => setAberto(false)} />}
+    </>
   );
 }
