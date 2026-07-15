@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { chamarApi, getSessao } from "@/lib/sessao";
 import { ArrowLeft, Palette } from "lucide-react";
 import { PainelConfigVisual } from "@/components/PainelConfigVisual";
-import { AdministrativoModal } from "@/components/AdministrativoModal";
 
 type Moto = {
   linha: number; marca: string; modelo: string; placa: string; chao: string; status: string;
@@ -28,7 +27,6 @@ export default function FinanceiroPage() {
   const [motos, setMotos] = useState<Moto[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [configVisualAberto, setConfigVisualAberto] = useState(false);
-  const [administrativoAberto, setAdministrativoAberto] = useState(false);
   const [filtroLoja, setFiltroLoja] = useState("");
   const [custosEditados, setCustosEditados] = useState<Record<number, string>>({});
   const [salvando, setSalvando] = useState<number | null>(null);
@@ -81,22 +79,17 @@ export default function FinanceiroPage() {
       <div className="flex flex-col md:flex-row gap-8">
         <Sidebar nomeUsuario={sessao?.nome} />
         <div className="flex-1">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex items-center justify-between mb-4">
             <a href="/" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-accent"><ArrowLeft size={15} /> Voltar ao Rank</a>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => setConfigVisualAberto(true)} className="h-10 px-4 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold flex items-center gap-2 hover:border-accent transition-colors">
-                <Palette size={15} /> Configurações Visuais
-              </button>
-              <a href="/disparo-geral" className="h-10 px-4 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold flex items-center hover:border-accent transition-colors">
-                📤 Disparo Geral
-              </a>
-              <a href="/financeiro-completo" className="h-10 px-4 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold flex items-center hover:border-accent transition-colors">
-                📊 Painel Completo
-              </a>
-              <button onClick={() => setAdministrativoAberto(true)} className="h-10 px-4 rounded-lg bg-white/5 border border-yellow-500/40 text-yellow-400 text-sm font-semibold flex items-center gap-2 hover:border-yellow-400 transition-colors">
-                🔒 Administrativo
-              </button>
-            </div>
+            <button onClick={() => setConfigVisualAberto(true)} className="h-10 px-4 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold flex items-center gap-2 hover:border-accent transition-colors">
+              <Palette size={15} /> Configurações Visuais
+            </button>
+            <a href="/disparo-geral" className="h-10 px-4 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold flex items-center hover:border-accent transition-colors">
+              📤 Disparo Geral
+            </a>
+            <a href="/financeiro-completo" className="h-10 px-4 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold flex items-center hover:border-accent transition-colors">
+              📊 Painel Completo
+            </a>
           </div>
           <h1 className="text-3xl md:text-4xl font-black mb-2">Painel Financeiro</h1>
           <p className="text-muted-foreground text-sm mb-1">Fechamento de Vendas — todas as vendas do mês</p>
@@ -175,7 +168,6 @@ export default function FinanceiroPage() {
       </div>
 
       {configVisualAberto && <PainelConfigVisual onClose={() => setConfigVisualAberto(false)} sessao={sessao} />}
-      {administrativoAberto && <AdministrativoModal onClose={() => setAdministrativoAberto(false)} />}
 
     </main>
   );
