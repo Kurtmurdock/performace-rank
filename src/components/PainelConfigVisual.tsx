@@ -105,7 +105,7 @@ export function PainelConfigVisual({ onClose, sessao }: { onClose: () => void; s
 
   if (!autenticado) {
     return (
-      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
         <div className="bg-card border border-border rounded-2xl max-w-xs w-full p-6 relative">
           <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground"><X size={20} /></button>
           <h2 className="text-lg font-black mb-1">🎨 CONFIGURAÇÕES <span className="text-accent">VISUAIS</span></h2>
@@ -126,7 +126,7 @@ export function PainelConfigVisual({ onClose, sessao }: { onClose: () => void; s
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
       <div className="bg-card border border-border rounded-2xl max-w-2xl w-full my-8 p-6 relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground"><X size={20} /></button>
         <h2 className="text-2xl font-black mb-1">🎨 CONFIGURAÇÕES <span className="text-accent">VISUAIS</span></h2>

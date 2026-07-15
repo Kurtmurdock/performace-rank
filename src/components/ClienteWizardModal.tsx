@@ -71,8 +71,8 @@ export function ClienteWizardModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-2xl max-w-lg w-full">
+    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
+      <div className="bg-card border border-border rounded-2xl max-w-lg w-full my-8">
         <div className="p-6 space-y-5">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-black">+ CADASTRAR <span className="text-accent">CLIENTE</span></h3>
