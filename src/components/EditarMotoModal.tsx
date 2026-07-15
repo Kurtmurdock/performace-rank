@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, Lock, Unlock, Upload } from "lucide-react";
 import { chamarApi, getSessao } from "@/lib/sessao";
-import { ClienteBusca, type Cliente } from "@/components/ClienteBusca";
-import { FormasPagamentoEditor, type FormaPagamento } from "@/components/FormasPagamentoEditor";
 
 type Moto = {
   linha: number;
@@ -76,31 +74,18 @@ export function EditarMotoModal({
   const sessao = getSessao();
   const ehGestor = sessao?.cargo === "gestor";
 
-  // ── Status da Negociação — gatilho do fechamento de venda ──
+  // ── Status da Negociação — gatilho pra tela de Fechamento de Venda ──
   const statusAtual = moto.status.includes("Vendido") ? "vendido" : moto.status.includes("Negociação") ? "negociacao" : "disponivel";
   const [statusEscolhido, setStatusEscolhido] = useState<"disponivel" | "negociacao" | "vendido">(statusAtual);
   const [lojaStatus, setLojaStatus] = useState(moto.chao || "");
 
-  // Fechamento de venda (só aparece se statusEscolhido === "vendido")
-  const [vendedores, setVendedores] = useState<string[]>([]);
-  const [vendedorNome, setVendedorNome] = useState("");
-  const [formasPagamento, setFormasPagamento] = useState<FormaPagamento[]>([]);
-  const [cliente, setCliente] = useState<Cliente | null>(null);
-  const [temAutorizado, setTemAutorizado] = useState(false);
-  const [autorizado, setAutorizado] = useState<Cliente | null>(null);
-
-  // Mostra a busca de cliente mais cedo: já em "Em Assinatura" (status do
-  // contrato) ou quando o status vira "Vendido" — não precisa esperar o
-  // fechamento final pra já vincular/cadastrar o cliente.
-  const mostrarBuscaCliente = statusEscolhido === "vendido" || statusContrato === "Em Assinatura";
-
-  useEffect(() => {
-    if (statusEscolhido === "vendido" && lojaStatus) {
-      chamarApi({ acao: "rh_listar_vendedores_loja", loja: lojaStatus }).then((data) => {
-        if (data && data.ok) setVendedores(data.vendedores || []);
-      });
-    }
-  }, [statusEscolhido, lojaStatus]);
+  // Selecionar "Vendido" (ou marcar o contrato como "Em Assinatura") leva
+  // direto pra tela de Fechamento de Venda — cliente, autorizado, vendedor
+  // e formas de pagamento não ficam mais aqui dentro do card (ficava
+  // complicado de ler). Essa página nova cuida de tudo isso de uma vez.
+  const irParaFechamento = () => {
+    window.location.href = `/estoque/fechamento?linha=${moto.linha}`;
+  };
 
   const salvar = async () => {
     setSalvando(true);
@@ -110,28 +95,7 @@ export function EditarMotoModal({
     if (statusEscolhido === "negociacao") novoStatus = `🔄 Em Negociação — ${lojaStatus}`;
     if (statusEscolhido === "vendido") novoStatus = `🏁 Vendido, ${lojaStatus}`;
 
-    if (statusEscolhido === "vendido") {
-      if (!lojaStatus || !vendedorNome) {
-        setMsg("❌ Selecione a loja e o vendedor.");
-        setSalvando(false);
-        return;
-      }
-      if (formasPagamento.length === 0) {
-        setMsg("❌ Adicione ao menos uma forma de pagamento.");
-        setSalvando(false);
-        return;
-      }
-      if (!cliente) {
-        setMsg("❌ Selecione ou cadastre o cliente antes de finalizar a venda.");
-        setSalvando(false);
-        return;
-      }
-      if (temAutorizado && !autorizado) {
-        setMsg("❌ Selecione ou cadastre o autorizado (ou desmarque a retirada por terceiros).");
-        setSalvando(false);
-        return;
-      }
-    } else if (statusEscolhido === "negociacao" && !lojaStatus) {
+    if (statusEscolhido === "negociacao" && !lojaStatus) {
       setMsg("❌ Selecione a loja.");
       setSalvando(false);
       return;
@@ -150,15 +114,6 @@ export function EditarMotoModal({
       senhaMaster: senhaMaster || undefined,
       novoStatus,
     };
-
-    if (statusEscolhido === "vendido") {
-      payload.fechamentoVenda = {
-        vendedorNome,
-        formasPagamento,
-        cliente,
-        autorizado: temAutorizado ? autorizado : null,
-      };
-    }
 
     const data = await chamarApi(payload);
     if (data && data.ok) {
@@ -187,7 +142,11 @@ export function EditarMotoModal({
             <label className="text-xs font-bold uppercase text-accent">Status da Negociação</label>
             <select
               value={statusEscolhido}
-              onChange={(e) => setStatusEscolhido(e.target.value as any)}
+              onChange={(e) => {
+                const v = e.target.value as "disponivel" | "negociacao" | "vendido";
+                if (v === "vendido") { irParaFechamento(); return; }
+                setStatusEscolhido(v);
+              }}
               className="w-full bg-white/5 border border-white/10 rounded-lg h-10 px-3 text-sm mt-1"
             >
               <option value="disponivel">✅ Disponível</option>
@@ -195,7 +154,7 @@ export function EditarMotoModal({
               <option value="vendido">🏁 Vendido</option>
             </select>
 
-            {(statusEscolhido === "negociacao" || statusEscolhido === "vendido") && (
+            {statusEscolhido === "negociacao" && (
               <div className="mt-3">
                 <label className="text-xs text-muted-foreground">Loja</label>
                 <select value={lojaStatus} onChange={(e) => setLojaStatus(e.target.value)}
@@ -205,49 +164,24 @@ export function EditarMotoModal({
                 </select>
               </div>
             )}
+
+            {statusEscolhido === "vendido" && (
+              <button type="button" onClick={irParaFechamento}
+                className="mt-3 w-full h-9 rounded-lg bg-accent/20 border border-accent/40 text-accent text-xs font-semibold hover:bg-accent/30">
+                📝 Ver / Editar Fechamento de Venda
+              </button>
+            )}
           </div>
-
-          {/* Fechamento de venda — só aparece se Vendido */}
-          {statusEscolhido === "vendido" && (
-            <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 space-y-3">
-              <p className="text-sm font-bold text-accent">💰 Fechamento da Venda (obrigatório)</p>
-
-              <div>
-                <label className="text-xs text-muted-foreground">Vendedor</label>
-                <select value={vendedorNome} onChange={(e) => setVendedorNome(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                  <option value="">{vendedores.length ? "—" : "Selecione a loja primeiro"}</option>
-                  {vendedores.map((v) => <option key={v}>{v}</option>)}
-                </select>
-              </div>
-
-              <p className="text-xs font-bold text-accent pt-1">💳 Formas de Pagamento</p>
-              <FormasPagamentoEditor value={formasPagamento} onChange={setFormasPagamento} />
-
-            </div>
-          )}
-
-          {/* Cliente / Autorizado — aparece cedo (Em Assinatura ou À Vista) e não só em Vendido */}
-          {mostrarBuscaCliente && (
-            <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 space-y-3">
-              <ClienteBusca label="👤 Cliente" value={cliente} onChange={setCliente} />
-
-              <label className="flex items-center gap-2 text-sm pt-2 border-t border-white/10 mt-2">
-                <input type="checkbox" checked={temAutorizado} onChange={(e) => setTemAutorizado(e.target.checked)} />
-                🔑 Haverá retirada por terceiros? (autorização/procuração)
-              </label>
-
-              {temAutorizado && (
-                <ClienteBusca label="👤 Autorizado (retirada por terceiros)" value={autorizado} onChange={setAutorizado} />
-              )}
-            </div>
-          )}
 
           {/* Status / Contrato */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold uppercase text-muted-foreground">Status do Contrato</label>
-              <select value={statusContrato} onChange={(e) => setStatusContrato(e.target.value)}
+              <select value={statusContrato} onChange={(e) => {
+                const v = e.target.value;
+                setStatusContrato(v);
+                if (v === "Em Assinatura") irParaFechamento();
+              }}
                 className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
                 <option value="">—</option>
                 <option>Em Assinatura</option>
