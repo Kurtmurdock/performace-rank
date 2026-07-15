@@ -5,7 +5,7 @@ import { Sidebar, TopBar, BellButton } from "@/components/Sidebar";
 import { GlowCard } from "@/components/ui/spotlight-card";
 import { FiltroDropdown } from "@/components/FiltroDropdown";
 import { chamarApi, getSessao } from "@/lib/sessao";
-import { Search, Pencil, Camera, X, ArrowLeft, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Pencil, Camera, X, ArrowLeft, Plus, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { EditarMotoModal, EnviarFotosModal } from "@/components/EditarMotoModal";
 import { CadastrarMotoModal } from "@/components/CadastrarMotoModal";
 
@@ -51,6 +51,7 @@ function formatBRL(v: number) {
 }
 
 function corDoStatus(status: string) {
+  if (status.includes("Bloqueada")) return "purple" as const;
   if (status.includes("Vendido")) return "red" as const;
   if (status.includes("Negociação")) return "orange" as const;
   return "green" as const;
@@ -107,6 +108,17 @@ export default function EstoquePage() {
   };
   useEffect(() => { carregar(); }, []);
 
+  const liberarVeiculoTroca = async (linha: number) => {
+    const senhaMaster = window.prompt("Senha master pra liberar esta moto pra venda:");
+    if (!senhaMaster) return;
+    const data = await chamarApi({ acao: "rh_liberar_veiculo_troca", linha, senhaMaster, solicitante: sessao?.nome });
+    if (data && data.ok) {
+      carregar();
+    } else {
+      alert("❌ " + ((data && data.erro) || "Erro ao liberar veículo."));
+    }
+  };
+
   const buscarPrecoPadrao = (marca: string, modelo: string): number | null => {
     if (!tabelaPrecos.length) return null;
     const texto = `${marca || ""} ${modelo || ""}`.toUpperCase();
@@ -151,16 +163,20 @@ export default function EstoquePage() {
     });
   }, [motos, busca, fStatus, fPlaca, fChao, fFornecedor, fMarca, fValor, fContrato, fBanco, fMedalha, tabelaPrecos]);
 
-  const disp = filtradas.filter((m) => !m.status.includes("Vendido") && !m.status.includes("Negociação"));
+  const disp = filtradas.filter((m) => !m.status.includes("Vendido") && !m.status.includes("Negociação") && !m.status.includes("Bloqueada"));
   const neg = filtradas.filter((m) => m.status.includes("Negociação"));
   const vnd = filtradas.filter((m) => m.status.includes("Vendido"));
+  const bloq = filtradas.filter((m) => m.status.includes("Bloqueada"));
 
   const CardMoto = ({ moto }: { moto: Moto }) => {
     const precoPadrao = buscarPrecoPadrao(moto.marca, moto.modelo);
     const loja = lojaAcao(moto);
     const chaoFisico = moto.chao || "";
+    const bloqueada = moto.status.includes("Bloqueada");
     const emAcao = moto.status.includes("Negociação") || moto.status.includes("Vendido");
-    const badge = moto.status.includes("Negociação")
+    const badge = bloqueada
+      ? "🔒 BLOQUEADA (TROCA)"
+      : moto.status.includes("Negociação")
       ? `🔄 EM NEGOCIAÇÃO — ${loja.toUpperCase()}`
       : moto.status.includes("Vendido")
       ? `🏁 VENDIDA — ${loja.toUpperCase()}`
@@ -172,7 +188,8 @@ export default function EstoquePage() {
 
         <div className="flex items-center justify-between mb-1">
           <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full ${
-            moto.status.includes("Vendido") ? "bg-red-500/20 text-red-400"
+            bloqueada ? "bg-purple-500/20 text-purple-300"
+            : moto.status.includes("Vendido") ? "bg-red-500/20 text-red-400"
             : moto.status.includes("Negociação") ? "bg-orange-500/20 text-orange-400"
             : "bg-green-500/20 text-green-400"}`}>
             {badge}
@@ -237,15 +254,24 @@ export default function EstoquePage() {
         )}
 
         <div className="flex flex-col gap-2 mt-auto">
-          <button onClick={() => setMotoFotos(moto)}
-            className="w-full h-9 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold flex items-center justify-center gap-1.5 hover:border-accent transition-colors">
-            <Camera size={13} /> {moto.fotos && moto.fotos.length ? "Adicionar Fotos" : "Enviar Fotos"}
-          </button>
-          {podeEditar && (
-            <button onClick={() => setMotoEditando(moto)}
-              className="w-full h-9 rounded-lg bg-accent/20 border border-accent/40 text-accent text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-accent/30 transition-colors">
-              <Pencil size={13} /> Editar
+          {bloqueada ? (
+            <button onClick={() => liberarVeiculoTroca(moto.linha)}
+              className="w-full h-9 rounded-lg bg-purple-500/20 border border-purple-400/40 text-purple-300 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-purple-500/30 transition-colors">
+              <Lock size={13} /> Liberar pra Venda
             </button>
+          ) : (
+            <>
+              <button onClick={() => setMotoFotos(moto)}
+                className="w-full h-9 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold flex items-center justify-center gap-1.5 hover:border-accent transition-colors">
+                <Camera size={13} /> {moto.fotos && moto.fotos.length ? "Adicionar Fotos" : "Enviar Fotos"}
+              </button>
+              {podeEditar && (
+                <button onClick={() => setMotoEditando(moto)}
+                  className="w-full h-9 rounded-lg bg-accent/20 border border-accent/40 text-accent text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-accent/30 transition-colors">
+                  <Pencil size={13} /> Editar
+                </button>
+              )}
+            </>
           )}
         </div>
       </GlowCard>
@@ -333,6 +359,7 @@ export default function EstoquePage() {
           {carregando && <p className="text-muted-foreground mt-4">Carregando...</p>}
 
           <div className="mt-4">
+            <Secao titulo="🔒 Bloqueadas (Troca)" lista={bloq} cor="#a855f7" />
             <Secao titulo="✅ Disponíveis" lista={disp} cor="#4ade80" />
             <Secao titulo="🔄 Em Negociação" lista={neg} cor="#fb923c" />
             <Secao titulo="🏁 Vendidas" lista={vnd} cor="#dc2626" />

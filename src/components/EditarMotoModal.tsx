@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X, Lock, Unlock, Upload } from "lucide-react";
 import { chamarApi, getSessao } from "@/lib/sessao";
 import { ClienteBusca, type Cliente } from "@/components/ClienteBusca";
+import { FormasPagamentoEditor, type FormaPagamento } from "@/components/FormasPagamentoEditor";
 
 type Moto = {
   linha: number;
@@ -81,15 +82,9 @@ export function EditarMotoModal({
   const [lojaStatus, setLojaStatus] = useState(moto.chao || "");
 
   // Fechamento de venda (só aparece se statusEscolhido === "vendido")
-  const [formaPagamento, setFormaPagamento] = useState<"financiado" | "avista">("financiado");
   const [vendedores, setVendedores] = useState<string[]>([]);
   const [vendedorNome, setVendedorNome] = useState("");
-  const [entrada, setEntrada] = useState("");
-  const [financiamento, setFinanciamento] = useState("");
-  const [banco, setBanco] = useState("");
-  const [repasse, setRepasse] = useState("");
-  const [meioPagamento, setMeioPagamento] = useState("");
-  const [valorAVista, setValorAVista] = useState("");
+  const [formasPagamento, setFormasPagamento] = useState<FormaPagamento[]>([]);
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [temAutorizado, setTemAutorizado] = useState(false);
   const [autorizado, setAutorizado] = useState<Cliente | null>(null);
@@ -121,13 +116,8 @@ export function EditarMotoModal({
         setSalvando(false);
         return;
       }
-      if (formaPagamento === "avista" && (!meioPagamento || !valorAVista)) {
-        setMsg("❌ Preencha meio de pagamento e valor recebido.");
-        setSalvando(false);
-        return;
-      }
-      if (formaPagamento === "financiado" && (!entrada || !financiamento || !banco || !repasse)) {
-        setMsg("❌ Preencha entrada, financiamento, banco e repasse.");
+      if (formasPagamento.length === 0) {
+        setMsg("❌ Adicione ao menos uma forma de pagamento.");
         setSalvando(false);
         return;
       }
@@ -163,13 +153,8 @@ export function EditarMotoModal({
 
     if (statusEscolhido === "vendido") {
       payload.fechamentoVenda = {
-        formaPagamento,
         vendedorNome,
-        entrada: formaPagamento === "avista" ? valorAVista : entrada,
-        financiamento: formaPagamento === "avista" ? "" : financiamento,
-        banco: formaPagamento === "avista" ? "" : banco,
-        repasse: formaPagamento === "avista" ? "" : repasse,
-        meioPagamento: formaPagamento === "avista" ? meioPagamento : "",
+        formasPagamento,
         cliente,
         autorizado: temAutorizado ? autorizado : null,
       };
@@ -227,68 +212,17 @@ export function EditarMotoModal({
             <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 space-y-3">
               <p className="text-sm font-bold text-accent">💰 Fechamento da Venda (obrigatório)</p>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Forma de Pagamento</label>
-                  <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value as any)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                    <option value="financiado">Financiado</option>
-                    <option value="avista">À Vista</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Vendedor</label>
-                  <select value={vendedorNome} onChange={(e) => setVendedorNome(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                    <option value="">{vendedores.length ? "—" : "Selecione a loja primeiro"}</option>
-                    {vendedores.map((v) => <option key={v}>{v}</option>)}
-                  </select>
-                </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Vendedor</label>
+                <select value={vendedorNome} onChange={(e) => setVendedorNome(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
+                  <option value="">{vendedores.length ? "—" : "Selecione a loja primeiro"}</option>
+                  {vendedores.map((v) => <option key={v}>{v}</option>)}
+                </select>
               </div>
 
-              {formaPagamento === "financiado" ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-muted-foreground">Entrada (R$)</label>
-                    <input value={entrada} onChange={(e) => setEntrada(e.target.value)} placeholder="R$ 0,00"
-                      className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground">Financiamento (R$)</label>
-                    <input value={financiamento} onChange={(e) => setFinanciamento(e.target.value)} placeholder="R$ 0,00"
-                      className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground">Banco</label>
-                    <input value={banco} onChange={(e) => setBanco(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground">Repasse (R1 a R5)</label>
-                    <select value={repasse} onChange={(e) => setRepasse(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                      <option value="">—</option>
-                      <option>R1</option><option>R2</option><option>R3</option><option>R4</option><option>R5</option>
-                    </select>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-muted-foreground">Meio de Pagamento</label>
-                    <select value={meioPagamento} onChange={(e) => setMeioPagamento(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                      <option value="">—</option>
-                      <option>Cartão</option><option>PIX</option><option>Dinheiro</option><option>Outro</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground">Valor Recebido (R$)</label>
-                    <input value={valorAVista} onChange={(e) => setValorAVista(e.target.value)} placeholder="R$ 0,00"
-                      className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
-                  </div>
-                </div>
-              )}
+              <p className="text-xs font-bold text-accent pt-1">💳 Formas de Pagamento</p>
+              <FormasPagamentoEditor value={formasPagamento} onChange={setFormasPagamento} />
 
             </div>
           )}
