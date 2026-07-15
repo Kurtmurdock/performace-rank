@@ -7,7 +7,7 @@ import { chamarApi, getSessao } from "@/lib/sessao";
 import { ArrowLeft, Upload } from "lucide-react";
 
 type Lead = { id: number; nome: string; telefone: string; regiao: "rio" | "lagos" };
-const DDDS_RIO = ["21", "22", "24"];
+const DDDS_RIO = ["21"];
 
 export default function LeadsPage() {
   const sessao = getSessao();
@@ -77,7 +77,7 @@ export default function LeadsPage() {
         <div className="flex-1 max-w-3xl">
           <a href="/" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-accent mb-4"><ArrowLeft size={15} /> Voltar ao Rank</a>
           <h1 className="text-3xl md:text-4xl font-black mb-2">Leads</h1>
-          <p className="text-muted-foreground text-sm mb-6">Upload de planilha — roteamento automático por DDD (21/22/24 = Rio, outros = Lagos)</p>
+          <p className="text-muted-foreground text-sm mb-6">Upload de planilha — roteamento automático por DDD (21 = Rio, outros como 22 = Lagos)</p>
 
           <label className="flex items-center justify-center gap-2 h-12 rounded-lg bg-accent text-white font-bold text-sm cursor-pointer mb-3">
             <Upload size={16} /> Selecionar planilha (.xlsx ou .csv)
