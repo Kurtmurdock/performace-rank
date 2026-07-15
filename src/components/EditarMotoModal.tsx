@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Lock, Unlock, Upload } from "lucide-react";
 import { chamarApi, getSessao } from "@/lib/sessao";
+import { ClienteBusca, type Cliente } from "@/components/ClienteBusca";
 
 type Moto = {
   linha: number;
@@ -89,11 +90,14 @@ export function EditarMotoModal({
   const [repasse, setRepasse] = useState("");
   const [meioPagamento, setMeioPagamento] = useState("");
   const [valorAVista, setValorAVista] = useState("");
-  const [cliente, setCliente] = useState({
-    nome: "", cpf: "", rg: "", nascimento: "", nomePai: "", nomeMae: "", telefone: "", email: "", endereco: "",
-  });
+  const [cliente, setCliente] = useState<Cliente | null>(null);
   const [temAutorizado, setTemAutorizado] = useState(false);
-  const [autorizado, setAutorizado] = useState({ nome: "", cpf: "", rg: "", telefone: "", email: "" });
+  const [autorizado, setAutorizado] = useState<Cliente | null>(null);
+
+  // Mostra a busca de cliente mais cedo: já em "Em Assinatura" (status do
+  // contrato) ou quando o status vira "Vendido" — não precisa esperar o
+  // fechamento final pra já vincular/cadastrar o cliente.
+  const mostrarBuscaCliente = statusEscolhido === "vendido" || statusContrato === "Em Assinatura";
 
   useEffect(() => {
     if (statusEscolhido === "vendido" && lojaStatus) {
@@ -127,13 +131,13 @@ export function EditarMotoModal({
         setSalvando(false);
         return;
       }
-      if (!cliente.nome || !cliente.cpf || !cliente.rg || !cliente.nascimento || !cliente.nomePai || !cliente.nomeMae || !cliente.telefone || !cliente.email || !cliente.endereco) {
-        setMsg("❌ Preencha todos os dados do cliente.");
+      if (!cliente) {
+        setMsg("❌ Selecione ou cadastre o cliente antes de finalizar a venda.");
         setSalvando(false);
         return;
       }
-      if (temAutorizado && (!autorizado.nome || !autorizado.cpf || !autorizado.rg || !autorizado.telefone || !autorizado.email)) {
-        setMsg("❌ Preencha todos os dados do autorizado (ou desmarque a retirada por terceiros).");
+      if (temAutorizado && !autorizado) {
+        setMsg("❌ Selecione ou cadastre o autorizado (ou desmarque a retirada por terceiros).");
         setSalvando(false);
         return;
       }
@@ -286,27 +290,13 @@ export function EditarMotoModal({
                 </div>
               )}
 
-              <p className="text-xs font-bold text-accent pt-1">👤 Dados do Cliente</p>
-              <div className="grid grid-cols-2 gap-3">
-                <input placeholder="Nome completo" value={cliente.nome} onChange={(e) => setCliente((c) => ({ ...c, nome: e.target.value }))}
-                  className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm col-span-2" />
-                <input placeholder="CPF" value={cliente.cpf} onChange={(e) => setCliente((c) => ({ ...c, cpf: e.target.value }))}
-                  className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
-                <input placeholder="RG" value={cliente.rg} onChange={(e) => setCliente((c) => ({ ...c, rg: e.target.value }))}
-                  className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
-                <input placeholder="Data de nascimento" value={cliente.nascimento} onChange={(e) => setCliente((c) => ({ ...c, nascimento: e.target.value }))}
-                  className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
-                <input placeholder="Telefone" value={cliente.telefone} onChange={(e) => setCliente((c) => ({ ...c, telefone: e.target.value }))}
-                  className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
-                <input placeholder="Nome do pai" value={cliente.nomePai} onChange={(e) => setCliente((c) => ({ ...c, nomePai: e.target.value }))}
-                  className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
-                <input placeholder="Nome da mãe" value={cliente.nomeMae} onChange={(e) => setCliente((c) => ({ ...c, nomeMae: e.target.value }))}
-                  className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
-                <input placeholder="Email" value={cliente.email} onChange={(e) => setCliente((c) => ({ ...c, email: e.target.value }))}
-                  className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm col-span-2" />
-                <input placeholder="Endereço completo" value={cliente.endereco} onChange={(e) => setCliente((c) => ({ ...c, endereco: e.target.value }))}
-                  className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm col-span-2" />
-              </div>
+            </div>
+          )}
+
+          {/* Cliente / Autorizado — aparece cedo (Em Assinatura ou À Vista) e não só em Vendido */}
+          {mostrarBuscaCliente && (
+            <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 space-y-3">
+              <ClienteBusca label="👤 Cliente" value={cliente} onChange={setCliente} />
 
               <label className="flex items-center gap-2 text-sm pt-2 border-t border-white/10 mt-2">
                 <input type="checkbox" checked={temAutorizado} onChange={(e) => setTemAutorizado(e.target.checked)} />
@@ -314,21 +304,7 @@ export function EditarMotoModal({
               </label>
 
               {temAutorizado && (
-                <div className="space-y-3 bg-white/5 rounded-lg p-3">
-                  <p className="text-xs font-bold text-accent">👤 Dados do Autorizado</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <input placeholder="Nome completo" value={autorizado.nome} onChange={(e) => setAutorizado((a) => ({ ...a, nome: e.target.value }))}
-                      className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm col-span-2" />
-                    <input placeholder="CPF" value={autorizado.cpf} onChange={(e) => setAutorizado((a) => ({ ...a, cpf: e.target.value }))}
-                      className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
-                    <input placeholder="RG" value={autorizado.rg} onChange={(e) => setAutorizado((a) => ({ ...a, rg: e.target.value }))}
-                      className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
-                    <input placeholder="Telefone" value={autorizado.telefone} onChange={(e) => setAutorizado((a) => ({ ...a, telefone: e.target.value }))}
-                      className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
-                    <input placeholder="Email" value={autorizado.email} onChange={(e) => setAutorizado((a) => ({ ...a, email: e.target.value }))}
-                      className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
-                  </div>
-                </div>
+                <ClienteBusca label="👤 Autorizado (retirada por terceiros)" value={autorizado} onChange={setAutorizado} />
               )}
             </div>
           )}
@@ -340,6 +316,7 @@ export function EditarMotoModal({
               <select value={statusContrato} onChange={(e) => setStatusContrato(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
                 <option value="">—</option>
+                <option>Em Assinatura</option>
                 <option>Pago</option>
                 <option>Pendente</option>
                 <option>Cancelado</option>
