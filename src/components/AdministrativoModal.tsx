@@ -32,6 +32,11 @@ export function AdministrativoModal({ onClose }: { onClose: () => void }) {
     if (data && data.ok) {
       setSenhaValidada(senhaDigitada);
       setSenhaOk(true);
+    } else if (data && data.erro) {
+      // Erro real do backend (ex: ação não reconhecida = versão antiga ainda
+      // implantada) — mostra isso em vez de sempre dizer "senha incorreta",
+      // pra dar pra diferenciar os dois casos.
+      setErroSenha("❌ " + data.erro);
     } else {
       setErroSenha("❌ Senha incorreta.");
     }
