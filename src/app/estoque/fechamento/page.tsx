@@ -9,6 +9,7 @@ import { ClienteBusca, type Cliente } from "@/components/ClienteBusca";
 import { FormasPagamentoEditor, type FormaPagamento } from "@/components/FormasPagamentoEditor";
 
 const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Rio das Ostras","Infinity","Baby Motos"];
+const NOMES_SDR = ["Giovana", "Ana Clara", "Thayna", "Patricia"];
 
 type Moto = {
   linha: number; marca: string; modelo: string; placa: string; chassi: string;
@@ -29,6 +30,8 @@ export default function FechamentoVendaPage() {
   const [vendedorNome, setVendedorNome] = useState("");
   const [formasPagamento, setFormasPagamento] = useState<FormaPagamento[]>([]);
   const [cliente, setCliente] = useState<Cliente | null>(null);
+  const [temSdr, setTemSdr] = useState(false);
+  const [sdrNome, setSdrNome] = useState("");
   const [temAutorizado, setTemAutorizado] = useState(false);
   const [autorizado, setAutorizado] = useState<Cliente | null>(null);
 
@@ -67,20 +70,25 @@ export default function FechamentoVendaPage() {
       acao: "rh_editar_moto",
       gerente: sessao?.nome,
       linha,
-      campos: {},
-      novoStatus: `🏁 Vendido, ${lojaVenda}`,
+      // Só marca o CONTRATO como "Em Assinatura" — não mexe no Status da
+      // Negociação (a moto pode continuar "Em Negociação" no estoque).
+      // "Vendido" é uma ação separada, feita pelo vendedor só na entrega
+      // física da moto, sem precisar passar por essa tela de novo.
+      campos: { statusContrato: "Em Assinatura" },
       fechamentoVenda: {
         vendedorNome,
         formasPagamento,
         cliente,
         autorizado: temAutorizado ? autorizado : null,
+        sdrNome: temSdr ? sdrNome : "",
+        loja: lojaVenda,
       },
     });
     if (data && data.ok) {
-      setMsg("✅ Venda finalizada com sucesso!");
-      setTimeout(() => { window.location.href = "/estoque"; }, 1000);
+      setMsg("✅ Contrato fechado com sucesso! A moto continua em negociação até você marcar \"Vendido\" na entrega.");
+      setTimeout(() => { window.location.href = "/estoque"; }, 1800);
     } else {
-      setMsg("❌ " + ((data && data.erro) || "Erro ao finalizar a venda."));
+      setMsg("❌ " + ((data && data.erro) || "Erro ao fechar o contrato."));
     }
     setSalvando(false);
   };
@@ -95,7 +103,10 @@ export default function FechamentoVendaPage() {
           <a href="/estoque" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-accent mb-4">
             <ArrowLeft size={15} /> Voltar ao Estoque
           </a>
-          <h1 className="text-3xl md:text-4xl font-black mb-1">Fechamento de <span className="text-accent">Venda</span></h1>
+          <h1 className="text-3xl md:text-4xl font-black mb-1">Fechamento de <span className="text-accent">Contrato</span></h1>
+          <p className="text-muted-foreground text-sm mb-4">
+            Cliente, pagamento e vendedor ficam registrados aqui. A moto só vira &quot;Vendido&quot; no estoque quando você confirmar a entrega, separadamente.
+          </p>
 
           {carregando && <p className="text-muted-foreground text-sm">Carregando...</p>}
           {erro && <p className="text-accent text-sm">❌ {erro}</p>}
@@ -125,6 +136,25 @@ export default function FechamentoVendaPage() {
                 </select>
               </div>
 
+              <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                <label className="text-xs text-muted-foreground">A venda teve participação de SDR?</label>
+                <select value={temSdr ? "sim" : "nao"} onChange={(e) => setTemSdr(e.target.value === "sim")}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
+                  <option value="nao">Não</option>
+                  <option value="sim">Sim</option>
+                </select>
+                {temSdr && (
+                  <div className="mt-2">
+                    <label className="text-xs text-muted-foreground">Qual SDR?</label>
+                    <select value={sdrNome} onChange={(e) => setSdrNome(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
+                      <option value="">—</option>
+                      {NOMES_SDR.map((s) => <option key={s}>{s}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+
               <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 space-y-3">
                 <ClienteBusca label="👤 Cliente" value={cliente} onChange={setCliente} />
 
@@ -150,7 +180,7 @@ export default function FechamentoVendaPage() {
                 disabled={salvando}
                 className="w-full h-11 rounded-lg bg-accent text-white font-bold text-sm disabled:opacity-60"
               >
-                {salvando ? "Finalizando..." : "🏁 FINALIZAR VENDA"}
+                {salvando ? "Fechando..." : "📝 FECHAR CONTRATO"}
               </button>
             </div>
           )}

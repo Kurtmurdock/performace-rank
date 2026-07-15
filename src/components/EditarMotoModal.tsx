@@ -142,19 +142,15 @@ export function EditarMotoModal({
             <label className="text-xs font-bold uppercase text-accent">Status da Negociação</label>
             <select
               value={statusEscolhido}
-              onChange={(e) => {
-                const v = e.target.value as "disponivel" | "negociacao" | "vendido";
-                if (v === "vendido") { irParaFechamento(); return; }
-                setStatusEscolhido(v);
-              }}
+              onChange={(e) => setStatusEscolhido(e.target.value as "disponivel" | "negociacao" | "vendido")}
               className="w-full bg-white/5 border border-white/10 rounded-lg h-10 px-3 text-sm mt-1"
             >
               <option value="disponivel">✅ Disponível</option>
               <option value="negociacao">🔄 Em Negociação</option>
-              <option value="vendido">🏁 Vendido</option>
+              <option value="vendido">🏁 Vendido (entregue ao cliente)</option>
             </select>
 
-            {statusEscolhido === "negociacao" && (
+            {(statusEscolhido === "negociacao" || statusEscolhido === "vendido") && (
               <div className="mt-3">
                 <label className="text-xs text-muted-foreground">Loja</label>
                 <select value={lojaStatus} onChange={(e) => setLojaStatus(e.target.value)}
@@ -166,11 +162,15 @@ export function EditarMotoModal({
             )}
 
             {statusEscolhido === "vendido" && (
-              <button type="button" onClick={irParaFechamento}
-                className="mt-3 w-full h-9 rounded-lg bg-accent/20 border border-accent/40 text-accent text-xs font-semibold hover:bg-accent/30">
-                📝 Ver / Editar Fechamento de Venda
-              </button>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Use isso só na hora da entrega física. O contrato (cliente/pagamento) é fechado separadamente.
+              </p>
             )}
+
+            <button type="button" onClick={irParaFechamento}
+              className="mt-3 w-full h-9 rounded-lg bg-accent/20 border border-accent/40 text-accent text-xs font-semibold hover:bg-accent/30">
+              📝 Ver / Editar Fechamento de Contrato
+            </button>
           </div>
 
           {/* Status / Contrato */}
