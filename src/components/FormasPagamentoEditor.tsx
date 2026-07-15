@@ -19,7 +19,7 @@ export type FormaEntrada = {
   comprovante?: Anexo | null; comprovanteNome?: string;
 };
 export type FormaFinanciamento = {
-  tipo: "financiamento"; banco: string; prestacoes: string; valor: string; repasse?: string;
+  tipo: "financiamento"; banco: string; prestacoes: string; valorParcela: string; valor: string; repasse?: string;
 };
 export type FormaBoleto = {
   tipo: "boleto"; valor: string; vencimento: string; recorrencias: string;
@@ -61,7 +61,7 @@ export function FormasPagamentoEditor({
   const adicionar = (tipo: FormaPagamento["tipo"]) => {
     let nova: FormaPagamento;
     if (tipo === "entrada") nova = { tipo: "entrada", meio: "", valor: "" };
-    else if (tipo === "financiamento") nova = { tipo: "financiamento", banco: "", prestacoes: "", valor: "" };
+    else if (tipo === "financiamento") nova = { tipo: "financiamento", banco: "", prestacoes: "", valorParcela: "", valor: "" };
     else if (tipo === "boleto") nova = { tipo: "boleto", valor: "", vencimento: "", recorrencias: "" };
     else nova = { tipo: "veiculo", marca: "", modelo: "", placa: "", valor: "" };
     onChange([...value, nova]);
@@ -138,10 +138,18 @@ export function FormasPagamentoEditor({
                     className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Valor (R$)</label>
-                  <input value={f.valor} onChange={(e) => atualizar(idx, { valor: e.target.value })} placeholder="0,00"
+                  <label className="text-xs text-muted-foreground">Valor da Parcela (R$)</label>
+                  <input value={f.valorParcela} onChange={(e) => atualizar(idx, { valorParcela: e.target.value })} placeholder="0,00 (com juros)"
                     className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
                 </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-accent">💰 Valor Financiado (R$)</label>
+                <input value={f.valor} onChange={(e) => atualizar(idx, { valor: e.target.value })} placeholder="0,00"
+                  className="w-full bg-white/5 border border-accent/40 rounded-lg h-9 px-2 text-sm mt-1" />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Valor que a loja recebe do banco (sem os juros da parcela) — esse é o que conta na venda.
+                </p>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Repasse (opcional)</label>
