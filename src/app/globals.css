@@ -58,7 +58,13 @@ body {
   animation: fadeSlideUp .5s ease both;
 }
 
-/* Corrige o menu aberto do <select> ficar ilegível (fundo branco/texto claro) */
-select, option {
+/* Corrige o menu aberto do <select> ficar ilegível (fundo branco/texto claro).
+   color-scheme sozinho não é suficiente em todos os navegadores/SO — força
+   explicitamente fundo escuro e texto claro em cada opção da lista. */
+select {
   color-scheme: dark;
+}
+select option {
+  background-color: #1e293b;
+  color: #f8fafc;
 }
