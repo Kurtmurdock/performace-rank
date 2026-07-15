@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Radio, Wallet, Megaphone, Link2, Users, ClipboardList, Share2, FileText, Contact, Calendar, LogOut, AlertTriangle } from "lucide-react";
+import { Bell, Radio, Wallet, Megaphone, Link2, Users, ClipboardList, Share2, FileText, Contact, Calendar, LogOut, AlertTriangle, UserSquare2, FolderPlus } from "lucide-react";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import { getSessao } from "@/lib/sessao";
 import { NotificacoesModal } from "@/components/NotificacoesModal";
@@ -12,6 +12,8 @@ import { AnuncioModal } from "@/components/AnuncioModal";
 // Quando definido, só os cargos listados veem.
 const ITENS = [
   { label: "Ver Estoque ao Vivo", icon: Radio, href: "/estoque", permitido: undefined },
+  { label: "Clientes", icon: UserSquare2, href: "/clientes", permitido: undefined },
+  { label: "Cadastro", icon: FolderPlus, href: "/cadastro", permitido: undefined },
   { label: "Painel Financeiro", icon: Wallet, href: "/financeiro", permitido: undefined },
   { label: "Monitor de Anúncios", icon: Megaphone, href: "/anuncios", permitido: undefined },
   { label: "Recicla Lead", icon: Link2, href: "/recicla-lead", permitido: undefined },
