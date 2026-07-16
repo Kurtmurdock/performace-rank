@@ -69,6 +69,8 @@ export function EditarMotoModal({
   const [valorEntrada, setValorEntrada] = useState(moto.valorEntrada || "");
   const [senhaMaster, setSenhaMaster] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [salvandoStatus, setSalvandoStatus] = useState(false);
+  const [msgStatus, setMsgStatus] = useState("");
   const [msg, setMsg] = useState("");
 
   const sessao = getSessao();
@@ -85,6 +87,32 @@ export function EditarMotoModal({
   // complicado de ler). Essa página nova cuida de tudo isso de uma vez.
   const irParaFechamento = () => {
     window.location.href = `/estoque/fechamento?linha=${moto.linha}`;
+  };
+
+  // Status da Negociação salva na hora, sem precisar do botão "Salvar"
+  // geral (que só cuida do resto dos campos). Disponível salva assim que
+  // escolhido; Em Negociação/Vendido salvam assim que a loja é escolhida.
+  const salvarStatusRapido = async (statusEscolhidoAgora: "disponivel" | "negociacao" | "vendido", lojaEscolhidaAgora: string) => {
+    if ((statusEscolhidoAgora === "negociacao" || statusEscolhidoAgora === "vendido") && !lojaEscolhidaAgora) return;
+    let statusParaSalvar = "✅ Disponível";
+    if (statusEscolhidoAgora === "negociacao") statusParaSalvar = `🔄 Em Negociação — ${lojaEscolhidaAgora}`;
+    if (statusEscolhidoAgora === "vendido") statusParaSalvar = `🏁 Vendido, ${lojaEscolhidaAgora}`;
+
+    setSalvandoStatus(true);
+    setMsgStatus("");
+    const data = await chamarApi({
+      acao: "rh_editar_moto",
+      gerente: JSON.parse(localStorage.getItem("performace_sessao") || "{}").nome,
+      linha: moto.linha,
+      novoStatus: statusParaSalvar,
+    });
+    if (data && data.ok) {
+      setMsgStatus("✅ Status salvo!");
+      onSalvo();
+    } else {
+      setMsgStatus("❌ " + ((data && data.erro) || "Erro ao salvar status."));
+    }
+    setSalvandoStatus(false);
   };
 
   const salvar = async () => {
@@ -142,7 +170,11 @@ export function EditarMotoModal({
             <label className="text-xs font-bold uppercase text-accent">Status da Negociação</label>
             <select
               value={statusEscolhido}
-              onChange={(e) => setStatusEscolhido(e.target.value as "disponivel" | "negociacao" | "vendido")}
+              onChange={(e) => {
+                const v = e.target.value as "disponivel" | "negociacao" | "vendido";
+                setStatusEscolhido(v);
+                if (v === "disponivel") salvarStatusRapido(v, "");
+              }}
               className="w-full bg-white/5 border border-white/10 rounded-lg h-10 px-3 text-sm mt-1"
             >
               <option value="disponivel">✅ Disponível</option>
@@ -153,13 +185,20 @@ export function EditarMotoModal({
             {(statusEscolhido === "negociacao" || statusEscolhido === "vendido") && (
               <div className="mt-3">
                 <label className="text-xs text-muted-foreground">Loja</label>
-                <select value={lojaStatus} onChange={(e) => setLojaStatus(e.target.value)}
+                <select value={lojaStatus} onChange={(e) => {
+                  const v = e.target.value;
+                  setLojaStatus(v);
+                  salvarStatusRapido(statusEscolhido, v);
+                }}
                   className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
                   <option value="">—</option>
                   {LOJAS.map((l) => <option key={l}>{l}</option>)}
                 </select>
               </div>
             )}
+
+            {salvandoStatus && <p className="mt-2 text-[11px] text-muted-foreground">Salvando status...</p>}
+            {msgStatus && !salvandoStatus && <p className="mt-2 text-[11px]">{msgStatus}</p>}
 
             {statusEscolhido === "vendido" && (
               <p className="mt-2 text-[11px] text-muted-foreground">

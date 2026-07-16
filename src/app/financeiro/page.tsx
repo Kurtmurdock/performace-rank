@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Sidebar, TopBar, BellButton } from "@/components/Sidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { chamarApi, getSessao } from "@/lib/sessao";
-import { ArrowLeft, Palette, Lock } from "lucide-react";
+import { ArrowLeft, Palette, Lock, Inbox } from "lucide-react";
 import { PainelConfigVisual } from "@/components/PainelConfigVisual";
 import { AdministrativoModal } from "@/components/AdministrativoModal";
+import { LogMensagensModal } from "@/components/LogMensagensModal";
 import { useConfigVisual } from "@/lib/useConfigVisual";
 
 type Moto = {
@@ -35,6 +36,7 @@ export default function FinanceiroPage() {
   const [carregando, setCarregando] = useState(true);
   const [configVisualAberto, setConfigVisualAberto] = useState(false);
   const [administrativoAberto, setAdministrativoAberto] = useState(false);
+  const [logMensagensAberto, setLogMensagensAberto] = useState(false);
   const [filtroLoja, setFiltroLoja] = useState("");
   const [custosEditados, setCustosEditados] = useState<Record<number, string>>({});
   const [salvando, setSalvando] = useState<number | null>(null);
@@ -176,6 +178,9 @@ export default function FinanceiroPage() {
               <button onClick={() => setAdministrativoAberto(true)} className="h-10 px-4 rounded-lg bg-white/5 border border-yellow-500/40 text-yellow-400 text-sm font-semibold flex items-center gap-2 hover:border-yellow-400 transition-colors">
                 🔒 Administrativo
               </button>
+              <button onClick={() => setLogMensagensAberto(true)} className="h-10 px-4 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold flex items-center gap-2 hover:border-accent transition-colors">
+                <Inbox size={15} /> Mensagens Enviadas
+              </button>
             </div>
           </div>
           <h1 className="text-3xl md:text-4xl font-black mb-2">Painel Financeiro</h1>
@@ -256,6 +261,7 @@ export default function FinanceiroPage() {
 
       {configVisualAberto && <PainelConfigVisual onClose={() => setConfigVisualAberto(false)} sessao={sessao} />}
       {administrativoAberto && <AdministrativoModal onClose={() => setAdministrativoAberto(false)} />}
+      {logMensagensAberto && <LogMensagensModal onClose={() => setLogMensagensAberto(false)} />}
 
     </main>
   );
