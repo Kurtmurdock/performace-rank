@@ -47,6 +47,7 @@ export default function FechamentoVendaPage() {
   const [docsSelecionados, setDocsSelecionados] = useState<string[]>([]);
   const [gerando, setGerando] = useState(false);
   const [docsGerados, setDocsGerados] = useState<{ tipo: string; nome: string; url: string }[]>([]);
+  const [pdfUnicoUrl, setPdfUnicoUrl] = useState("");
   const [msgContratos, setMsgContratos] = useState("");
 
   useEffect(() => {
@@ -153,6 +154,9 @@ export default function FechamentoVendaPage() {
     const data = await chamarApi({ acao: "rh_gerar_contratos", linha, tipos: docsSelecionados });
     if (data && data.ok) {
       setDocsGerados((prev) => [...prev, ...data.gerados]);
+      // PDF único: só o dessa rodada de geração, não acumula com rodadas
+      // anteriores — por isso substitui em vez de concatenar.
+      setPdfUnicoUrl(data.pdfUnicoUrl || "");
       if (data.falhas && data.falhas.length) {
         // Antes só mostrava qual documento falhou, sem dizer o motivo —
         // o erro de verdade ficava só no Logger.log do Apps Script, sem
@@ -360,9 +364,18 @@ export default function FechamentoVendaPage() {
                   </>
                 )}
 
+                {pdfUnicoUrl && (
+                  <a
+                    href={pdfUnicoUrl} target="_blank" rel="noopener"
+                    className="block w-full text-center h-11 leading-[44px] rounded-lg bg-accent text-white font-bold text-sm hover:opacity-90"
+                  >
+                    📦 Baixar todos os documentos desta venda (PDF único)
+                  </a>
+                )}
+
                 {docsGerados.length > 0 && (
                   <div className="space-y-1.5">
-                    <p className="text-xs text-muted-foreground">Documentos gerados:</p>
+                    <p className="text-xs text-muted-foreground">Documentos gerados (separados):</p>
                     {docsGerados.map((d, i) => (
                       <a key={i} href={d.url} target="_blank" rel="noopener" className="block text-sm text-accent underline">
                         📄 {d.nome}

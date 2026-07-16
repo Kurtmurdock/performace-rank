@@ -7,6 +7,7 @@ import { RainbowButton } from "@/components/ui/rainbow-button";
 import { getSessao, chamarApi } from "@/lib/sessao";
 import { Camera, Lock, Check, Wallet, FileText, Home, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button-1";
+import { useConfigVisual } from "@/lib/useConfigVisual";
 
 type Perfil = {
   nome: string; email: string; telefone: string; cargo: string; loja: string;
@@ -162,8 +163,24 @@ export default function PerfilPage() {
     );
   }
 
+  const configVisual = useConfigVisual("perfil");
+
   return (
-    <main className="min-h-screen bg-background text-foreground px-4 py-8 md:px-10">
+    <main
+      className="min-h-screen bg-background text-foreground px-4 py-8 md:px-10 relative"
+      style={{
+        backgroundColor: configVisual?.corFundo || undefined,
+        fontFamily: configVisual?.fonte || undefined,
+        ["--accent" as any]: configVisual?.corBotao || undefined,
+      }}
+    >
+      {configVisual?.midiaFundoUrl && (
+        configVisual.midiaFundoTipo === "video" ? (
+          <video src={configVisual.midiaFundoUrl} className="fixed inset-0 w-full h-full object-cover -z-10 opacity-30" autoPlay muted loop />
+        ) : (
+          <img src={configVisual.midiaFundoUrl} className="fixed inset-0 w-full h-full object-cover -z-10 opacity-30" alt="" />
+        )
+      )}
       <BellButton />
       <TopBar />
       <div className="flex flex-col md:flex-row gap-8">

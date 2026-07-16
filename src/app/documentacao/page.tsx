@@ -5,6 +5,7 @@ import { Sidebar, TopBar, BellButton } from "@/components/Sidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { chamarApi, getSessao } from "@/lib/sessao";
 import { ArrowLeft } from "lucide-react";
+import { useConfigVisual } from "@/lib/useConfigVisual";
 
 export default function DocumentacaoPage() {
   const sessao = getSessao();
@@ -18,8 +19,24 @@ export default function DocumentacaoPage() {
     });
   }, []);
 
+  const configVisual = useConfigVisual("documentacao");
+
   return (
-    <main className="min-h-screen bg-background text-foreground px-4 py-8 md:px-10">
+    <main
+      className="min-h-screen bg-background text-foreground px-4 py-8 md:px-10 relative"
+      style={{
+        backgroundColor: configVisual?.corFundo || undefined,
+        fontFamily: configVisual?.fonte || undefined,
+        ["--accent" as any]: configVisual?.corBotao || undefined,
+      }}
+    >
+      {configVisual?.midiaFundoUrl && (
+        configVisual.midiaFundoTipo === "video" ? (
+          <video src={configVisual.midiaFundoUrl} className="fixed inset-0 w-full h-full object-cover -z-10 opacity-30" autoPlay muted loop />
+        ) : (
+          <img src={configVisual.midiaFundoUrl} className="fixed inset-0 w-full h-full object-cover -z-10 opacity-30" alt="" />
+        )
+      )}
       <BellButton />
       <TopBar />
       <div className="flex flex-col md:flex-row gap-8">

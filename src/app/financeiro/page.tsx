@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Sidebar, TopBar, BellButton } from "@/components/Sidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { chamarApi, getSessao } from "@/lib/sessao";
-import { ArrowLeft, Palette } from "lucide-react";
+import { ArrowLeft, Palette, Lock } from "lucide-react";
 import { PainelConfigVisual } from "@/components/PainelConfigVisual";
 import { AdministrativoModal } from "@/components/AdministrativoModal";
+import { useConfigVisual } from "@/lib/useConfigVisual";
 
 type Moto = {
   linha: number; marca: string; modelo: string; placa: string; chao: string; status: string;
@@ -25,6 +26,11 @@ function brl(v: number) {
 
 export default function FinanceiroPage() {
   const sessao = getSessao();
+  const ehGestor = sessao?.cargo === "gestor";
+  const [desbloqueado, setDesbloqueado] = useState(false);
+  const [senhaInput, setSenhaInput] = useState("");
+  const [erroSenha, setErroSenha] = useState("");
+  const [validandoSenha, setValidandoSenha] = useState(false);
   const [motos, setMotos] = useState<Moto[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [configVisualAberto, setConfigVisualAberto] = useState(false);
@@ -42,7 +48,20 @@ export default function FinanceiroPage() {
       setCarregando(false);
     });
   };
-  useEffect(() => { carregar(); }, []);
+  useEffect(() => { if (desbloqueado) carregar(); }, [desbloqueado]);
+
+  const tentarDesbloquear = async () => {
+    if (!senhaInput.trim()) return;
+    setValidandoSenha(true);
+    setErroSenha("");
+    const data = await chamarApi({ acao: "rh_validar_senha_master", senhaMaster: senhaInput.trim() });
+    if (data && data.ok) {
+      setDesbloqueado(true);
+    } else {
+      setErroSenha("❌ Senha incorreta.");
+    }
+    setValidandoSenha(false);
+  };
 
   const lojas = useMemo(() => {
     const set = new Set(motos.map((m) => lojaDaVenda(m.status, m.chao)));
@@ -74,8 +93,69 @@ export default function FinanceiroPage() {
 
   const semCustoCount = motos.filter((m) => !m.valorEntrada).length;
 
+  if (!ehGestor) {
+    return (
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
+        <div className="max-w-sm text-center space-y-3">
+          <Lock size={32} className="mx-auto text-muted-foreground" />
+          <h1 className="text-xl font-black">Acesso restrito</h1>
+          <p className="text-muted-foreground text-sm">
+            O Painel Financeiro é visível só para gestores.
+          </p>
+          <a href="/" className="inline-block text-sm text-accent underline">← Voltar ao Rank</a>
+        </div>
+      </main>
+    );
+  }
+
+  if (!desbloqueado) {
+    return (
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
+        <div className="max-w-sm w-full space-y-3 text-center">
+          <Lock size={32} className="mx-auto text-accent" />
+          <h1 className="text-xl font-black">Painel Financeiro</h1>
+          <p className="text-muted-foreground text-sm">Digite a senha master pra entrar.</p>
+          <input
+            type="password"
+            value={senhaInput}
+            onChange={(e) => setSenhaInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && tentarDesbloquear()}
+            placeholder="Senha master"
+            autoComplete="off"
+            className="w-full bg-white/5 border border-white/10 rounded-lg h-11 px-3 text-sm text-center outline-none focus:border-accent"
+          />
+          {erroSenha && <p className="text-accent text-xs">{erroSenha}</p>}
+          <button
+            onClick={tentarDesbloquear}
+            disabled={validandoSenha}
+            className="w-full h-11 rounded-lg bg-accent text-white font-bold text-sm disabled:opacity-60"
+          >
+            {validandoSenha ? "Verificando..." : "Entrar"}
+          </button>
+          <a href="/" className="inline-block text-sm text-muted-foreground hover:text-accent underline">← Voltar ao Rank</a>
+        </div>
+      </main>
+    );
+  }
+
+  const configVisual = useConfigVisual("financeiro");
+
   return (
-    <main className="min-h-screen bg-background text-foreground px-4 py-8 md:px-10">
+    <main
+      className="min-h-screen bg-background text-foreground px-4 py-8 md:px-10 relative"
+      style={{
+        backgroundColor: configVisual?.corFundo || undefined,
+        fontFamily: configVisual?.fonte || undefined,
+        ["--accent" as any]: configVisual?.corBotao || undefined,
+      }}
+    >
+      {configVisual?.midiaFundoUrl && (
+        configVisual.midiaFundoTipo === "video" ? (
+          <video src={configVisual.midiaFundoUrl} className="fixed inset-0 w-full h-full object-cover -z-10 opacity-30" autoPlay muted loop />
+        ) : (
+          <img src={configVisual.midiaFundoUrl} className="fixed inset-0 w-full h-full object-cover -z-10 opacity-30" alt="" />
+        )
+      )}
       <BellButton />
       <TopBar />
       <div className="flex flex-col md:flex-row gap-8">

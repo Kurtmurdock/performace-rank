@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { SpaceBackground } from "@/components/ui/space-background";
+import { useConfigVisual } from "@/lib/useConfigVisual";
 
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzRPeZO6kTKnnKD6KOtsBG3YuRbKMLUO9m0Nc4rUTb0ECG_UsW_qiwgzp1hc2q6meBUvQ/exec";
@@ -43,9 +44,25 @@ export default function LoginPage() {
     }
   };
 
+  const configVisual = useConfigVisual("login");
+
   return (
-    <div className="min-h-screen w-screen bg-black relative overflow-hidden flex items-center justify-center">
+    <div
+      className="min-h-screen w-screen bg-black relative overflow-hidden flex items-center justify-center"
+      style={{
+        backgroundColor: configVisual?.corFundo || undefined,
+        fontFamily: configVisual?.fonte || undefined,
+        ["--accent" as any]: configVisual?.corBotao || undefined,
+      }}
+    >
       <SpaceBackground />
+      {configVisual?.midiaFundoUrl && (
+        configVisual.midiaFundoTipo === "video" ? (
+          <video src={configVisual.midiaFundoUrl} className="absolute inset-0 w-full h-full object-cover opacity-30 z-0" autoPlay muted loop />
+        ) : (
+          <img src={configVisual.midiaFundoUrl} className="absolute inset-0 w-full h-full object-cover opacity-30 z-0" alt="" />
+        )
+      )}
 
       {/* Véu escuro pra garantir contraste do card sobre o fundo 3D */}
       <div className="absolute inset-0 z-[1] bg-gradient-to-b from-black/30 via-black/50 to-black/80" />
