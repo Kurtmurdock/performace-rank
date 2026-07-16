@@ -40,6 +40,7 @@ export default function FechamentoVendaPage() {
 
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
+  const [contratoFechado, setContratoFechado] = useState(false);
 
   const [ehCarro, setEhCarro] = useState(false);
   const [docsDisponiveis, setDocsDisponiveis] = useState<{ tipo: string; nome: string }[]>([]);
@@ -67,6 +68,7 @@ export default function FechamentoVendaPage() {
 
       if (dataFechamento && dataFechamento.ok) {
         setTravado(!!dataFechamento.travado);
+        if (dataFechamento.travado) setContratoFechado(true);
         if (dataFechamento.cliente) setCliente(dataFechamento.cliente);
         if (dataFechamento.autorizado) {
           setAutorizado(dataFechamento.autorizado);
@@ -126,7 +128,8 @@ export default function FechamentoVendaPage() {
       },
     });
     if (data && data.ok) {
-      setMsg("✅ Contrato fechado com sucesso! A moto continua em negociação até você marcar \"Vendido\" na entrega. Se quiser, já pode gerar os documentos abaixo.");
+      setMsg("✅ Contrato fechado com sucesso! A moto continua em negociação até você marcar \"Vendido\" na entrega. Já pode gerar os documentos abaixo.");
+      setContratoFechado(true);
       carregarDocsDisponiveis();
     } else {
       setMsg("❌ " + ((data && data.erro) || "Erro ao fechar o contrato."));
@@ -291,6 +294,15 @@ export default function FechamentoVendaPage() {
 
                   {msg && <p className="text-sm">{msg}</p>}
 
+                  {salvando && (
+                    <div className="bg-yellow-500/10 border border-yellow-400/30 rounded-lg p-3">
+                      <p className="text-sm font-bold text-yellow-300">⏳ Não saia dessa tela!</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Assim que o negócio for salvo, eu libero seus contratos pra download aqui mesmo.
+                      </p>
+                    </div>
+                  )}
+
                   <button
                     onClick={finalizar}
                     disabled={salvando}
@@ -301,20 +313,21 @@ export default function FechamentoVendaPage() {
                 </>
               )}
 
-              <div className="border-t border-white/10 pt-5 space-y-3">
-                <p className="text-sm font-bold text-accent">📄 Gerar Contratos</p>
+              {contratoFechado ? (
+                <div className="border-t border-white/10 pt-5 space-y-3">
+                  <p className="text-sm font-bold text-accent">📄 Gerar Contratos</p>
 
-                {docsDisponiveis.length === 0 ? (
-                  <button
-                    onClick={carregarDocsDisponiveis}
-                    className="w-full h-10 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold hover:border-accent"
-                  >
-                    Ver documentos disponíveis
-                  </button>
-                ) : (
-                  <>
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <input type="checkbox" checked={ehCarro} onChange={(e) => { setEhCarro(e.target.checked); }} />
+                  {docsDisponiveis.length === 0 ? (
+                    <button
+                      onClick={carregarDocsDisponiveis}
+                      className="w-full h-10 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold hover:border-accent"
+                    >
+                      Ver documentos disponíveis
+                    </button>
+                  ) : (
+                    <>
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <input type="checkbox" checked={ehCarro} onChange={(e) => { setEhCarro(e.target.checked); }} />
                       Este veículo é um carro (não moto)
                     </label>
 
@@ -357,7 +370,14 @@ export default function FechamentoVendaPage() {
                     ))}
                   </div>
                 )}
-              </div>
+                </div>
+              ) : (
+                <div className="border-t border-white/10 pt-5">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Lock size={12} /> A geração de documentos libera assim que o contrato for fechado.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
