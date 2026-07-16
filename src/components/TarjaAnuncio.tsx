@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { chamarApi, getSessao } from "@/lib/sessao";
 
-const INTERVALO_MS = 5000;
+const INTERVALO_MS = 15000; // 15s (era 5s) — com muita gente logada, 5s virava carga alta demais no backend
 
 // Tarja preta/amarela global — aparece pra qualquer pessoa logada
 // quando o gestor envia um anúncio geral. Fica no layout raiz, então
