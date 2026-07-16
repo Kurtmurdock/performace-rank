@@ -6,7 +6,7 @@ import { chamarApi } from "@/lib/sessao";
 
 type Loja = {
   nome: string; cnpj?: string; endereco?: string; bairro?: string; cidade?: string;
-  estado?: string; cep?: string; telefone?: string; logoUrl?: string;
+  estado?: string; cep?: string; telefone?: string; logoUrl?: string; grupoWhatsappId?: string;
 };
 
 export function DadosLojasModal({ onClose, sessao }: { onClose: () => void; sessao: any }) {
@@ -142,6 +142,12 @@ export function DadosLojasModal({ onClose, sessao }: { onClose: () => void; sess
               {campo("Cidade", "cidade")}
               {campo("Estado (UF)", "estado")}
               {campo("CEP", "cep")}
+              <div className="col-span-2">
+                {campo("Grupo WhatsApp (ID, ex: 12036...@g.us)", "grupoWhatsappId", "120363xxxxxxxxxx@g.us")}
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Usado pra mandar automaticamente o resumo da venda e os documentos gerados só pra essa loja.
+                </p>
+              </div>
             </div>
 
             {msg && <p className="text-sm mt-3">{msg}</p>}

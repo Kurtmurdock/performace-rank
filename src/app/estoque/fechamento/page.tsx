@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Sidebar, TopBar, BellButton } from "@/components/Sidebar";
 import { chamarApi, getSessao } from "@/lib/sessao";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Lock } from "lucide-react";
 import { ClienteBusca, type Cliente } from "@/components/ClienteBusca";
 import { FormasPagamentoEditor, type FormaPagamento } from "@/components/FormasPagamentoEditor";
 
@@ -24,6 +24,7 @@ export default function FechamentoVendaPage() {
   const [moto, setMoto] = useState<Moto | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const [travado, setTravado] = useState(false);
 
   const [lojaVenda, setLojaVenda] = useState("");
   const [vendedores, setVendedores] = useState<string[]>([]);
@@ -49,13 +50,42 @@ export default function FechamentoVendaPage() {
 
   useEffect(() => {
     if (!linha) { setErro("Linha da moto não informada na URL."); setCarregando(false); return; }
-    chamarApi({ acao: "rh_obter_moto", linha }).then((data) => {
-      if (data && data.ok) {
-        setMoto(data.moto);
-        setLojaVenda(data.moto.chao || "");
+    // Duas chamadas: rh_obter_moto (dados do veículo) + rh_obter_fechamento
+    // (cliente/autorizado/formas de pagamento/SDR/half já salvos, se houver).
+    // Sem a segunda, a tela sempre abria em branco mesmo numa venda já
+    // fechada, porque nenhum desses dados vinha de volta pro site.
+    Promise.all([
+      chamarApi({ acao: "rh_obter_moto", linha }),
+      chamarApi({ acao: "rh_obter_fechamento", linha }),
+    ]).then(([dataMoto, dataFechamento]) => {
+      if (dataMoto && dataMoto.ok) {
+        setMoto(dataMoto.moto);
+        setLojaVenda((dataFechamento && dataFechamento.ok && dataFechamento.lojaVenda) || dataMoto.moto.chao || "");
       } else {
-        setErro((data && data.erro) || "Moto não encontrada.");
+        setErro((dataMoto && dataMoto.erro) || "Moto não encontrada.");
       }
+
+      if (dataFechamento && dataFechamento.ok) {
+        setTravado(!!dataFechamento.travado);
+        if (dataFechamento.cliente) setCliente(dataFechamento.cliente);
+        if (dataFechamento.autorizado) {
+          setAutorizado(dataFechamento.autorizado);
+          setTemAutorizado(true);
+        }
+        if (Array.isArray(dataFechamento.formasPagamento) && dataFechamento.formasPagamento.length) {
+          setFormasPagamento(dataFechamento.formasPagamento as FormaPagamento[]);
+        }
+        if (dataFechamento.sdrNome) {
+          setSdrNome(dataFechamento.sdrNome);
+          setTemSdr(true);
+        }
+        if (dataFechamento.halfVendedorNome) {
+          setHalfVendedorNome(dataFechamento.halfVendedorNome);
+          setTemHalf(true);
+        }
+        if (dataFechamento.vendedorNome) setVendedorNome(dataFechamento.vendedorNome);
+      }
+
       setCarregando(false);
     });
   }, [linha]);
@@ -156,92 +186,112 @@ export default function FechamentoVendaPage() {
                 <p className="text-xs text-muted-foreground">{moto.placa || "Sem placa"} · CÓD: {moto.linha}</p>
               </div>
 
-              <div>
-                <label className="text-xs text-muted-foreground">Loja da Venda</label>
-                <select value={lojaVenda} onChange={(e) => setLojaVenda(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg h-10 px-3 text-sm mt-1">
-                  <option value="">—</option>
-                  {LOJAS.map((l) => <option key={l}>{l}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs text-muted-foreground">Vendedor</label>
-                <select value={vendedorNome} onChange={(e) => setVendedorNome(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg h-10 px-3 text-sm mt-1">
-                  <option value="">{vendedores.length ? "—" : "Selecione a loja primeiro"}</option>
-                  {vendedores.map((v) => <option key={v}>{v}</option>)}
-                </select>
-              </div>
-
-              <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-                <label className="text-xs text-muted-foreground">A venda teve participação de SDR?</label>
-                <select value={temSdr ? "sim" : "nao"} onChange={(e) => setTemSdr(e.target.value === "sim")}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                  <option value="nao">Não</option>
-                  <option value="sim">Sim</option>
-                </select>
-                {temSdr && (
-                  <div className="mt-2">
-                    <label className="text-xs text-muted-foreground">Qual SDR?</label>
-                    <select value={sdrNome} onChange={(e) => setSdrNome(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
+              {travado ? (
+                <div className="bg-orange-500/10 border border-orange-400/30 rounded-lg p-4 space-y-2">
+                  <p className="text-sm font-bold text-orange-300 flex items-center gap-2">
+                    <Lock size={14} /> Venda já fechada — dados travados
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Cliente, pagamento e vendedor não podem mais ser editados por aqui. Qualquer correção
+                    precisa ser feita direto na planilha pelo Alan.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Pra ver os dados completos, ou anexar contrato assinado, vídeo declaratório ou
+                    comprovante, use o botão <strong>&quot;👁 Ver Dados da Venda&quot;</strong> no card dessa
+                    moto na tela de Estoque.
+                  </p>
+                  <a href="/estoque" className="inline-block text-xs text-accent underline mt-1">← Voltar ao Estoque</a>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Loja da Venda</label>
+                    <select value={lojaVenda} onChange={(e) => setLojaVenda(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg h-10 px-3 text-sm mt-1">
                       <option value="">—</option>
-                      {NOMES_SDR.map((s) => <option key={s}>{s}</option>)}
+                      {LOJAS.map((l) => <option key={l}>{l}</option>)}
                     </select>
                   </div>
-                )}
-              </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-                <label className="text-xs text-muted-foreground">A venda teve "half" (dois vendedores dividindo)?</label>
-                <select value={temHalf ? "sim" : "nao"} onChange={(e) => setTemHalf(e.target.value === "sim")}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                  <option value="nao">Não</option>
-                  <option value="sim">Sim</option>
-                </select>
-                {temHalf && (
-                  <div className="mt-2">
-                    <label className="text-xs text-muted-foreground">Vendedor half (leva metade da comissão)</label>
-                    <select value={halfVendedorNome} onChange={(e) => setHalfVendedorNome(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                      <option value="">—</option>
-                      {vendedores.filter((v) => v !== vendedorNome).map((v) => <option key={v}>{v}</option>)}
+                  <div>
+                    <label className="text-xs text-muted-foreground">Vendedor</label>
+                    <select value={vendedorNome} onChange={(e) => setVendedorNome(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg h-10 px-3 text-sm mt-1">
+                      <option value="">{vendedores.length ? "—" : "Selecione a loja primeiro"}</option>
+                      {vendedores.map((v) => <option key={v}>{v}</option>)}
                     </select>
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      &quot;{vendedorNome || "—"}&quot; é o cabeça (leva o carimbo da Premiação Semanal). O half só divide a comissão.
-                    </p>
                   </div>
-                )}
-              </div>
 
-              <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 space-y-3">
-                <ClienteBusca label="👤 Cliente" value={cliente} onChange={setCliente} />
+                  <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                    <label className="text-xs text-muted-foreground">A venda teve participação de SDR?</label>
+                    <select value={temSdr ? "sim" : "nao"} onChange={(e) => setTemSdr(e.target.value === "sim")}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
+                      <option value="nao">Não</option>
+                      <option value="sim">Sim</option>
+                    </select>
+                    {temSdr && (
+                      <div className="mt-2">
+                        <label className="text-xs text-muted-foreground">Qual SDR?</label>
+                        <select value={sdrNome} onChange={(e) => setSdrNome(e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
+                          <option value="">—</option>
+                          {NOMES_SDR.map((s) => <option key={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </div>
 
-                <label className="flex items-center gap-2 text-sm pt-2 border-t border-white/10 mt-2">
-                  <input type="checkbox" checked={temAutorizado} onChange={(e) => setTemAutorizado(e.target.checked)} />
-                  🔑 Haverá retirada por terceiros? (autorização/procuração)
-                </label>
+                  <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                    <label className="text-xs text-muted-foreground">A venda teve "half" (dois vendedores dividindo)?</label>
+                    <select value={temHalf ? "sim" : "nao"} onChange={(e) => setTemHalf(e.target.value === "sim")}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
+                      <option value="nao">Não</option>
+                      <option value="sim">Sim</option>
+                    </select>
+                    {temHalf && (
+                      <div className="mt-2">
+                        <label className="text-xs text-muted-foreground">Vendedor half (leva metade da comissão)</label>
+                        <select value={halfVendedorNome} onChange={(e) => setHalfVendedorNome(e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
+                          <option value="">—</option>
+                          {vendedores.filter((v) => v !== vendedorNome).map((v) => <option key={v}>{v}</option>)}
+                        </select>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          &quot;{vendedorNome || "—"}&quot; é o cabeça (leva o carimbo da Premiação Semanal). O half só divide a comissão.
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
-                {temAutorizado && (
-                  <ClienteBusca label="👤 Autorizado (retirada por terceiros)" value={autorizado} onChange={setAutorizado} />
-                )}
-              </div>
+                  <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 space-y-3">
+                    <ClienteBusca label="👤 Cliente" value={cliente} onChange={setCliente} />
 
-              <div>
-                <p className="text-sm font-bold text-accent mb-2">💳 Formas de Pagamento</p>
-                <FormasPagamentoEditor value={formasPagamento} onChange={setFormasPagamento} />
-              </div>
+                    <label className="flex items-center gap-2 text-sm pt-2 border-t border-white/10 mt-2">
+                      <input type="checkbox" checked={temAutorizado} onChange={(e) => setTemAutorizado(e.target.checked)} />
+                      🔑 Haverá retirada por terceiros? (autorização/procuração)
+                    </label>
 
-              {msg && <p className="text-sm">{msg}</p>}
+                    {temAutorizado && (
+                      <ClienteBusca label="👤 Autorizado (retirada por terceiros)" value={autorizado} onChange={setAutorizado} />
+                    )}
+                  </div>
 
-              <button
-                onClick={finalizar}
-                disabled={salvando}
-                className="w-full h-11 rounded-lg bg-accent text-white font-bold text-sm disabled:opacity-60"
-              >
-                {salvando ? "Fechando..." : "📝 FECHAR CONTRATO"}
-              </button>
+                  <div>
+                    <p className="text-sm font-bold text-accent mb-2">💳 Formas de Pagamento</p>
+                    <FormasPagamentoEditor value={formasPagamento} onChange={setFormasPagamento} />
+                  </div>
+
+                  {msg && <p className="text-sm">{msg}</p>}
+
+                  <button
+                    onClick={finalizar}
+                    disabled={salvando}
+                    className="w-full h-11 rounded-lg bg-accent text-white font-bold text-sm disabled:opacity-60"
+                  >
+                    {salvando ? "Fechando..." : "📝 FECHAR CONTRATO"}
+                  </button>
+                </>
+              )}
 
               <div className="border-t border-white/10 pt-5 space-y-3">
                 <p className="text-sm font-bold text-accent">📄 Gerar Contratos</p>

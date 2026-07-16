@@ -152,6 +152,18 @@ export function ClienteDetalheModal({ cpf, onClose }: { cpf: string; onClose: ()
     </div>
   );
 
+  // Aceita os formatos que já apareceram nos dados salvos (ISO com timestamp,
+  // YYYY-MM-DD do input type=date, ou dígitos crus digitados sem barra antes
+  // da correção) e sempre mostra dd/mm/aaaa.
+  const formatarNascimento = (v?: string) => {
+    if (!v) return undefined;
+    const isoMatch = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+    const digitos = v.replace(/\D/g, "");
+    if (digitos.length === 8) return `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
+    return v;
+  };
+
   return (
     <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
       <div className="bg-card border border-border rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -170,7 +182,7 @@ export function ClienteDetalheModal({ cpf, onClose }: { cpf: string; onClose: ()
                 {campo("Nome", cliente.nome)}
                 {campo("CPF", cliente.cpf)}
                 {campo("RG", cliente.rg)}
-                {campo("Nascimento", cliente.nascimento)}
+                {campo("Nascimento", formatarNascimento(cliente.nascimento))}
                 {campo("Estado Civil", cliente.estadoCivil)}
                 {campo("Profissão", cliente.profissao)}
                 {campo("Nome do Pai", cliente.nomePai)}

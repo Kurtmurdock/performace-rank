@@ -97,6 +97,9 @@ export function ClienteWizardModal({
                     <option value="">—</option>
                     {ESTADOS_CIVIS.map((ec) => <option key={ec}>{ec}</option>)}
                   </select>
+                ) : chave === "nascimento" ? (
+                  <input type="date" value={dados[chave] || ""} onChange={(e) => setCampo(chave, e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
                 ) : (
                   <input value={dados[chave] || ""} onChange={(e) => setCampo(chave, e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />

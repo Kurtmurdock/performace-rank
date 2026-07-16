@@ -5,9 +5,10 @@ import { Sidebar, TopBar, BellButton } from "@/components/Sidebar";
 import { GlowCard } from "@/components/ui/spotlight-card";
 import { FiltroDropdown } from "@/components/FiltroDropdown";
 import { chamarApi, getSessao } from "@/lib/sessao";
-import { Search, Pencil, Camera, X, ArrowLeft, Plus, ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { Search, Pencil, Camera, X, ArrowLeft, Plus, ChevronLeft, ChevronRight, Lock, Eye } from "lucide-react";
 import { EditarMotoModal, EnviarFotosModal } from "@/components/EditarMotoModal";
 import { CadastrarMotoModal } from "@/components/CadastrarMotoModal";
+import { VerDadosVendaModal } from "@/components/VerDadosVendaModal";
 
 type Moto = {
   linha: number; marca: string; modelo: string; ano?: string; chassi: string;
@@ -83,6 +84,7 @@ export default function EstoquePage() {
   const [busca, setBusca] = useState("");
   const [motoEditando, setMotoEditando] = useState<Moto | null>(null);
   const [motoFotos, setMotoFotos] = useState<Moto | null>(null);
+  const [motoVerVenda, setMotoVerVenda] = useState<Moto | null>(null);
   const [cadastrando, setCadastrando] = useState(false);
   const sessao = getSessao();
   const podeEditar = sessao?.cargo === "gestor" || sessao?.cargo === "gerente";
@@ -265,6 +267,12 @@ export default function EstoquePage() {
                 className="w-full h-9 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold flex items-center justify-center gap-1.5 hover:border-accent transition-colors">
                 <Camera size={13} /> {moto.fotos && moto.fotos.length ? "Adicionar Fotos" : "Enviar Fotos"}
               </button>
+              {moto.statusContrato && (
+                <button onClick={() => setMotoVerVenda(moto)}
+                  className="w-full h-9 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold flex items-center justify-center gap-1.5 hover:border-accent transition-colors">
+                  <Eye size={13} /> Ver Dados da Venda
+                </button>
+              )}
               {podeEditar && (
                 <button onClick={() => setMotoEditando(moto)}
                   className="w-full h-9 rounded-lg bg-accent/20 border border-accent/40 text-accent text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-accent/30 transition-colors">
@@ -374,6 +382,7 @@ export default function EstoquePage() {
       {motoEditando && <EditarMotoModal moto={motoEditando} onClose={() => setMotoEditando(null)} onSalvo={carregar} />}
       {motoFotos && <EnviarFotosModal moto={motoFotos} onClose={() => setMotoFotos(null)} />}
       {cadastrando && <CadastrarMotoModal onClose={() => setCadastrando(false)} onSalvo={carregar} />}
+      {motoVerVenda && <VerDadosVendaModal linha={motoVerVenda.linha} onClose={() => setMotoVerVenda(null)} />}
     </main>
   );
 }
