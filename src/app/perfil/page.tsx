@@ -153,6 +153,8 @@ export default function PerfilPage() {
     leitor.readAsDataURL(arquivo);
   };
 
+  const configVisual = useConfigVisual("perfil");
+
   if (!sessao) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-background text-foreground">
@@ -162,8 +164,6 @@ export default function PerfilPage() {
       </main>
     );
   }
-
-  const configVisual = useConfigVisual("perfil");
 
   return (
     <main

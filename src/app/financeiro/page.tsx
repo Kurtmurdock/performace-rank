@@ -92,6 +92,7 @@ export default function FinanceiroPage() {
   };
 
   const semCustoCount = motos.filter((m) => !m.valorEntrada).length;
+  const configVisual = useConfigVisual("financeiro");
 
   if (!ehGestor) {
     return (
@@ -138,8 +139,6 @@ export default function FinanceiroPage() {
       </main>
     );
   }
-
-  const configVisual = useConfigVisual("financeiro");
 
   return (
     <main
