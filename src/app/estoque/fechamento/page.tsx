@@ -32,11 +32,20 @@ export default function FechamentoVendaPage() {
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [temSdr, setTemSdr] = useState(false);
   const [sdrNome, setSdrNome] = useState("");
+  const [temHalf, setTemHalf] = useState(false);
+  const [halfVendedorNome, setHalfVendedorNome] = useState("");
   const [temAutorizado, setTemAutorizado] = useState(false);
   const [autorizado, setAutorizado] = useState<Cliente | null>(null);
 
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
+
+  const [ehCarro, setEhCarro] = useState(false);
+  const [docsDisponiveis, setDocsDisponiveis] = useState<{ tipo: string; nome: string }[]>([]);
+  const [docsSelecionados, setDocsSelecionados] = useState<string[]>([]);
+  const [gerando, setGerando] = useState(false);
+  const [docsGerados, setDocsGerados] = useState<{ tipo: string; nome: string; url: string }[]>([]);
+  const [msgContratos, setMsgContratos] = useState("");
 
   useEffect(() => {
     if (!linha) { setErro("Linha da moto não informada na URL."); setCarregando(false); return; }
@@ -64,6 +73,7 @@ export default function FechamentoVendaPage() {
     if (formasPagamento.length === 0) { setMsg("❌ Adicione ao menos uma forma de pagamento."); return; }
     if (!cliente) { setMsg("❌ Selecione ou cadastre o cliente."); return; }
     if (temAutorizado && !autorizado) { setMsg("❌ Selecione ou cadastre o autorizado (ou desmarque a retirada por terceiros)."); return; }
+    if (temHalf && !halfVendedorNome) { setMsg("❌ Selecione o vendedor half (ou desmarque a opção)."); return; }
 
     setSalvando(true);
     const data = await chamarApi({
@@ -81,16 +91,44 @@ export default function FechamentoVendaPage() {
         cliente,
         autorizado: temAutorizado ? autorizado : null,
         sdrNome: temSdr ? sdrNome : "",
+        halfVendedorNome: temHalf ? halfVendedorNome : "",
         loja: lojaVenda,
       },
     });
     if (data && data.ok) {
-      setMsg("✅ Contrato fechado com sucesso! A moto continua em negociação até você marcar \"Vendido\" na entrega.");
-      setTimeout(() => { window.location.href = "/estoque"; }, 1800);
+      setMsg("✅ Contrato fechado com sucesso! A moto continua em negociação até você marcar \"Vendido\" na entrega. Se quiser, já pode gerar os documentos abaixo.");
+      carregarDocsDisponiveis();
     } else {
       setMsg("❌ " + ((data && data.erro) || "Erro ao fechar o contrato."));
     }
     setSalvando(false);
+  };
+
+  const carregarDocsDisponiveis = () => {
+    chamarApi({ acao: "rh_documentos_disponiveis", temAutorizado, ehCarro }).then((data) => {
+      if (data && data.ok) {
+        setDocsDisponiveis(data.documentos);
+        setDocsSelecionados(data.documentos.filter((d: any) => d.padrao).map((d: any) => d.tipo));
+      }
+    });
+  };
+
+  const gerarContratos = async () => {
+    if (!docsSelecionados.length) { setMsgContratos("❌ Selecione ao menos um documento."); return; }
+    setGerando(true);
+    setMsgContratos("");
+    const data = await chamarApi({ acao: "rh_gerar_contratos", linha, tipos: docsSelecionados });
+    if (data && data.ok) {
+      setDocsGerados((prev) => [...prev, ...data.gerados]);
+      if (data.falhas && data.falhas.length) {
+        setMsgContratos("⚠️ Alguns documentos falharam: " + data.falhas.map((f: any) => f.tipo).join(", "));
+      } else {
+        setMsgContratos("✅ Documentos gerados com sucesso!");
+      }
+    } else {
+      setMsgContratos("❌ " + ((data && data.erro) || "Erro ao gerar contratos."));
+    }
+    setGerando(false);
   };
 
   return (
@@ -155,6 +193,28 @@ export default function FechamentoVendaPage() {
                 )}
               </div>
 
+              <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                <label className="text-xs text-muted-foreground">A venda teve "half" (dois vendedores dividindo)?</label>
+                <select value={temHalf ? "sim" : "nao"} onChange={(e) => setTemHalf(e.target.value === "sim")}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
+                  <option value="nao">Não</option>
+                  <option value="sim">Sim</option>
+                </select>
+                {temHalf && (
+                  <div className="mt-2">
+                    <label className="text-xs text-muted-foreground">Vendedor half (leva metade da comissão)</label>
+                    <select value={halfVendedorNome} onChange={(e) => setHalfVendedorNome(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
+                      <option value="">—</option>
+                      {vendedores.filter((v) => v !== vendedorNome).map((v) => <option key={v}>{v}</option>)}
+                    </select>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      &quot;{vendedorNome || "—"}&quot; é o cabeça (leva o carimbo da Premiação Semanal). O half só divide a comissão.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 space-y-3">
                 <ClienteBusca label="👤 Cliente" value={cliente} onChange={setCliente} />
 
@@ -182,6 +242,64 @@ export default function FechamentoVendaPage() {
               >
                 {salvando ? "Fechando..." : "📝 FECHAR CONTRATO"}
               </button>
+
+              <div className="border-t border-white/10 pt-5 space-y-3">
+                <p className="text-sm font-bold text-accent">📄 Gerar Contratos</p>
+
+                {docsDisponiveis.length === 0 ? (
+                  <button
+                    onClick={carregarDocsDisponiveis}
+                    className="w-full h-10 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold hover:border-accent"
+                  >
+                    Ver documentos disponíveis
+                  </button>
+                ) : (
+                  <>
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input type="checkbox" checked={ehCarro} onChange={(e) => { setEhCarro(e.target.checked); }} />
+                      Este veículo é um carro (não moto)
+                    </label>
+
+                    <div className="grid grid-cols-1 gap-1.5">
+                      {docsDisponiveis.map((d) => (
+                        <label key={d.tipo} className="flex items-center gap-2 text-sm bg-white/5 rounded-lg px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={docsSelecionados.includes(d.tipo)}
+                            onChange={(e) => {
+                              setDocsSelecionados((prev) =>
+                                e.target.checked ? [...prev, d.tipo] : prev.filter((t) => t !== d.tipo)
+                              );
+                            }}
+                          />
+                          {d.nome}
+                        </label>
+                      ))}
+                    </div>
+
+                    {msgContratos && <p className="text-sm">{msgContratos}</p>}
+
+                    <button
+                      onClick={gerarContratos}
+                      disabled={gerando}
+                      className="w-full h-10 rounded-lg bg-accent/20 border border-accent/40 text-accent font-bold text-sm disabled:opacity-60"
+                    >
+                      {gerando ? "Gerando..." : "📄 GERAR DOCUMENTOS SELECIONADOS"}
+                    </button>
+                  </>
+                )}
+
+                {docsGerados.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-muted-foreground">Documentos gerados:</p>
+                    {docsGerados.map((d, i) => (
+                      <a key={i} href={d.url} target="_blank" rel="noopener" className="block text-sm text-accent underline">
+                        📄 {d.nome}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
