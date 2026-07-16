@@ -74,6 +74,7 @@ export default function LoginPage() {
                 e.preventDefault();
                 entrar();
               }}
+              autoComplete="off"
               className="space-y-3"
             >
               {/* Nome */}
@@ -91,6 +92,8 @@ export default function LoginPage() {
                   onChange={(e) => setNome(e.target.value)}
                   onFocus={() => setFocado("nome")}
                   onBlur={() => setFocado(null)}
+                  autoComplete="off"
+                  name="performace-login-nome"
                   className="w-full bg-white/5 border border-white/10 focus:border-accent rounded-lg h-11 pl-10 pr-3 text-sm outline-none transition-colors"
                 />
               </div>
@@ -110,6 +113,8 @@ export default function LoginPage() {
                   onChange={(e) => setSenha(e.target.value)}
                   onFocus={() => setFocado("senha")}
                   onBlur={() => setFocado(null)}
+                  autoComplete="new-password"
+                  name="performace-login-senha"
                   className="w-full bg-white/5 border border-white/10 focus:border-accent rounded-lg h-11 pl-10 pr-10 text-sm outline-none transition-colors"
                 />
                 <button
