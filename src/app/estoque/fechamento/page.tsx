@@ -151,7 +151,15 @@ export default function FechamentoVendaPage() {
     if (data && data.ok) {
       setDocsGerados((prev) => [...prev, ...data.gerados]);
       if (data.falhas && data.falhas.length) {
-        setMsgContratos("⚠️ Alguns documentos falharam: " + data.falhas.map((f: any) => f.tipo).join(", "));
+        // Antes só mostrava qual documento falhou, sem dizer o motivo —
+        // o erro de verdade ficava só no Logger.log do Apps Script, sem
+        // ninguém ver. Agora mostra o motivo direto na tela.
+        const detalhes = data.falhas.map((f: any) => {
+          const doc = docsDisponiveis.find((d) => d.tipo === f.tipo);
+          const nomeExibicao = doc ? doc.nome : f.tipo;
+          return `${nomeExibicao}: ${f.erro || "erro desconhecido"}`;
+        }).join(" | ");
+        setMsgContratos("⚠️ Falha ao gerar: " + detalhes);
       } else {
         setMsgContratos("✅ Documentos gerados com sucesso!");
       }
