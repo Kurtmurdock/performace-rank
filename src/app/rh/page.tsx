@@ -132,6 +132,7 @@ function CadastrarPessoaModal({ onClose, onSalvo, sessao }: { onClose: () => voi
           </select>
           {(cargo === "gerente" || cargo === "gestor") && (
             <input type="password" placeholder="Senha master (obrigatório p/ gerente/gestor)" value={senhaMaster} onChange={(e) => setSenhaMaster(e.target.value)}
+              autoComplete="new-password" name="performace-rh-senha"
               className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-3 text-sm" />
           )}
           {msg && <p className="text-sm">{msg}</p>}

@@ -117,6 +117,8 @@ export function AdministrativoModal({ onClose }: { onClose: () => void }) {
               type="password" placeholder="Senha" value={senhaDigitada}
               onChange={(e) => setSenhaDigitada(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && conferirSenha()}
+              autoComplete="new-password"
+              name="performace-administrativo-senha"
               className="w-full bg-white/5 border border-white/10 rounded-lg h-10 px-3 text-sm mb-3"
             />
             {erroSenha && <p className="text-sm mb-2 text-center">{erroSenha}</p>}

@@ -307,6 +307,8 @@ export default function PerfilPage() {
                       placeholder="Senha atual"
                       value={senhaAtual}
                       onChange={(e) => setSenhaAtual(e.target.value)}
+                      autoComplete="current-password"
+                      name="performace-perfil-senha-atual"
                       className="w-full bg-white/5 border border-white/10 focus:border-accent rounded-lg h-10 px-3 text-sm outline-none"
                     />
                     <input
@@ -314,6 +316,8 @@ export default function PerfilPage() {
                       placeholder="Nova senha"
                       value={novaSenha}
                       onChange={(e) => setNovaSenha(e.target.value)}
+                      autoComplete="new-password"
+                      name="performace-perfil-senha-nova"
                       className="w-full bg-white/5 border border-white/10 focus:border-accent rounded-lg h-10 px-3 text-sm outline-none"
                     />
                     {msgSenha && <p className="text-xs">{msgSenha}</p>}

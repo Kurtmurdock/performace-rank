@@ -121,7 +121,8 @@ export default function FinanceiroPage() {
             onChange={(e) => setSenhaInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && tentarDesbloquear()}
             placeholder="Senha master"
-            autoComplete="off"
+            autoComplete="new-password"
+            name="performace-financeiro-senha"
             className="w-full bg-white/5 border border-white/10 rounded-lg h-11 px-3 text-sm text-center outline-none focus:border-accent"
           />
           {erroSenha && <p className="text-accent text-xs">{erroSenha}</p>}

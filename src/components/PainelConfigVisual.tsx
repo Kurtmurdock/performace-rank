@@ -116,6 +116,8 @@ export function PainelConfigVisual({ onClose, sessao }: { onClose: () => void; s
             value={senhaMaster}
             onChange={(e) => setSenhaMaster(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && entrar()}
+            autoComplete="new-password"
+            name="performace-configvisual-senha"
             className="w-full bg-white/5 border border-white/10 rounded-lg h-10 px-3 text-sm mb-2"
           />
           {erroSenha && <p className="text-accent text-sm mb-2">{erroSenha}</p>}

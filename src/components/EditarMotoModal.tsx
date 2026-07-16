@@ -322,6 +322,7 @@ export function EditarMotoModal({
               <input value={valorEntrada} onChange={(e) => setValorEntrada(e.target.value)} placeholder="R$ 0,00"
                 className="flex-1 bg-white/5 border border-white/10 rounded-lg h-9 px-3 text-sm outline-none" />
               <input value={senhaMaster} onChange={(e) => setSenhaMaster(e.target.value)} type="password" placeholder="Senha master"
+                autoComplete="new-password" name="performace-editarmoto-senha"
                 className="w-40 bg-white/5 border border-white/10 rounded-lg h-9 px-3 text-sm outline-none" />
             </div>
           </div>
