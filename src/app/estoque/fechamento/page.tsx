@@ -48,6 +48,9 @@ export default function FechamentoVendaPage() {
   const [gerando, setGerando] = useState(false);
   const [docsGerados, setDocsGerados] = useState<{ tipo: string; nome: string; url: string }[]>([]);
   const [pdfUnicoUrl, setPdfUnicoUrl] = useState("");
+  const [gerandoTeste, setGerandoTeste] = useState(false);
+  const [msgTeste, setMsgTeste] = useState("");
+  const [urlTeste, setUrlTeste] = useState("");
   const [msgContratos, setMsgContratos] = useState("");
 
   useEffect(() => {
@@ -174,6 +177,19 @@ export default function FechamentoVendaPage() {
       setMsgContratos("❌ " + ((data && data.erro) || "Erro ao gerar contratos."));
     }
     setGerando(false);
+  };
+
+  const testarContratoUnico = async () => {
+    setGerandoTeste(true);
+    setMsgTeste("");
+    const data = await chamarApi({ acao: "rh_gerar_contrato_unico", linha });
+    if (data && data.ok) {
+      setMsgTeste("✅ Gerado!");
+      setUrlTeste(data.url);
+    } else {
+      setMsgTeste("❌ " + ((data && data.erro) || "Erro ao gerar."));
+    }
+    setGerandoTeste(false);
   };
 
   return (
@@ -320,6 +336,26 @@ export default function FechamentoVendaPage() {
               {contratoFechado ? (
                 <div className="border-t border-white/10 pt-5 space-y-3">
                   <p className="text-sm font-bold text-accent">📄 Gerar Contratos</p>
+
+                  <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-3 space-y-2">
+                    <p className="text-xs font-bold text-yellow-400">🧪 TESTE — Contrato Único (Moto)</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Gera tudo num PDF só (Contrato, Termo, Recibo, Procuração/Autorização ou Termo Simplificado conforme o caso, Checklist). Não afeta o &quot;Gerar Contratos&quot; abaixo.
+                    </p>
+                    <button
+                      onClick={testarContratoUnico}
+                      disabled={gerandoTeste}
+                      className="w-full h-9 rounded-lg bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 text-xs font-semibold disabled:opacity-60"
+                    >
+                      {gerandoTeste ? "Gerando..." : "Testar Contrato Único"}
+                    </button>
+                    {msgTeste && <p className="text-xs">{msgTeste}</p>}
+                    {urlTeste && (
+                      <a href={urlTeste} target="_blank" rel="noopener" className="block text-xs text-accent underline">
+                        📄 Ver Contrato Único gerado
+                      </a>
+                    )}
+                  </div>
 
                   {docsDisponiveis.length === 0 ? (
                     <button
