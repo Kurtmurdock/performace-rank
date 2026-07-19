@@ -48,6 +48,17 @@ function lojaAcao(m: Moto) {
   return m.chao || "";
 }
 
+// Só conta como "loja negociadora" quando tem negociação/venda de verdade
+// — diferente de lojaAcao(), não cai pro "chão" quando ainda tá Disponível.
+function lojaNegociadora(m: Moto) {
+  const s = m.status || "";
+  const mn = s.match(/Negociação.{1,3}(.+)/);
+  if (mn) return mn[1].trim();
+  const mv = s.match(/Vendido,(.+)/);
+  if (mv) return mv[1].trim();
+  return "";
+}
+
 function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
@@ -102,6 +113,7 @@ export default function EstoquePage() {
   const [fContrato, setFContrato] = useState<string[]>([]);
   const [fBanco, setFBanco] = useState<string[]>([]);
   const [fMedalha, setFMedalha] = useState<string[]>([]);
+  const [fLojaNegociadora, setFLojaNegociadora] = useState<string[]>([]);
 
   const carregar = () => {
     chamarApi({ acao: "rh_listar_estoque_mobile" }).then((data) => {
@@ -138,10 +150,12 @@ export default function EstoquePage() {
   const limparFiltros = () => {
     setFStatus([]); setFPlaca([]); setFChao([]); setFFornecedor([]);
     setFMarca([]); setFValor([]); setFContrato([]); setFBanco([]); setFMedalha([]);
+    setFLojaNegociadora([]);
   };
   const totalFiltrosAtivos =
     fStatus.length + fPlaca.length + fChao.length + fFornecedor.length +
-    fMarca.length + fValor.length + fContrato.length + fBanco.length + fMedalha.length;
+    fMarca.length + fValor.length + fContrato.length + fBanco.length + fMedalha.length +
+    fLojaNegociadora.length;
 
   const filtradas = useMemo(() => {
     return motos.filter((m) => {
@@ -165,9 +179,10 @@ export default function EstoquePage() {
       if (fContrato.length && !fContrato.includes((m.statusContrato || "").toUpperCase())) return false;
       if (fBanco.length && !fBanco.includes((m.caixaFinanceira || "").toUpperCase())) return false;
       if (fMedalha.length && !fMedalha.includes((m.medalha || "").toUpperCase())) return false;
+      if (fLojaNegociadora.length && !fLojaNegociadora.some((l) => l.toUpperCase() === lojaNegociadora(m).toUpperCase())) return false;
       return true;
     });
-  }, [motos, busca, fStatus, fPlaca, fChao, fFornecedor, fMarca, fValor, fContrato, fBanco, fMedalha, tabelaPrecos]);
+  }, [motos, busca, fStatus, fPlaca, fChao, fFornecedor, fMarca, fValor, fContrato, fBanco, fMedalha, fLojaNegociadora, tabelaPrecos]);
 
   const disp = filtradas.filter((m) => !m.status.includes("Vendido") && !m.status.includes("Negociação") && !m.status.includes("Bloqueada"));
   const neg = filtradas.filter((m) => m.status.includes("Negociação"));
@@ -376,6 +391,7 @@ export default function EstoquePage() {
             <FiltroDropdown label="Contrato" opcoes={["EM ASSINATURA","ASSINADO","PAGO"]} selecionados={fContrato} onChange={setFContrato} />
             <FiltroDropdown label="Banco" opcoes={BANCOS} selecionados={fBanco} onChange={setFBanco} />
             <FiltroDropdown label="Medalha" opcoes={MEDALHAS} selecionados={fMedalha} onChange={setFMedalha} />
+            <FiltroDropdown label="Loja Negociadora" opcoes={LOJAS.map((l) => l.toUpperCase())} selecionados={fLojaNegociadora} onChange={setFLojaNegociadora} />
           </div>
 
           {totalFiltrosAtivos > 0 && (
