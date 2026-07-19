@@ -135,6 +135,7 @@ export default function FechamentoVendaPage() {
       setMsg("✅ Contrato fechado com sucesso! A moto continua em negociação até você marcar \"Vendido\" na entrega. Já pode gerar os documentos abaixo.");
       setContratoFechado(true);
       carregarDocsDisponiveis();
+      testarContratoUnico(); // dispara o Contrato Único automaticamente, sem precisar clicar em nada
     } else {
       setMsg("❌ " + ((data && data.erro) || "Erro ao fechar o contrato."));
     }
