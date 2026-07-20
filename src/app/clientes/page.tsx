@@ -62,6 +62,12 @@ export default function ClientesPage() {
               <Plus size={15} /> Cadastrar Cliente
             </button>
           </div>
+
+          {typeof window !== "undefined" && window.opener && searchParams.get("contexto") && (
+            <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 mb-4 text-sm">
+              ℹ️ Essa aba foi aberta a partir do Fechamento de Venda. Assim que você cadastrar o cliente, essa aba fecha sozinha e ele já aparece selecionado lá. Se cancelar, pode só fechar essa aba manualmente e voltar pra tela original.
+            </div>
+          )}
           <h1 className="text-3xl md:text-4xl font-black mb-1">Cadastro de <span className="text-accent">Clientes</span></h1>
           <p className="text-muted-foreground text-sm mb-6">{todosClientes.length} cliente(s) cadastrado(s). Filtre por nome ou CPF, ou cadastre um novo.</p>
 
@@ -100,8 +106,38 @@ export default function ClientesPage() {
 
       {cadastrarAberto && (
         <ClienteWizardModal
-          onClose={() => setCadastrarAberto(false)}
-          onCadastrado={(c: Cliente) => { carregarTodos(); setCpfDetalhe(c.cpf); }}
+          onClose={() => {
+            // Cancelou sem terminar: se veio do "+ Cadastrar" (aba própria,
+            // sem nada a mostrar de útil), fecha a aba sozinha em vez de
+            // deixar a pessoa "perdida" numa lista genérica sem instrução.
+            const contextoParamCancelado = searchParams.get("contexto");
+            if (window.opener && contextoParamCancelado) {
+              try { window.close(); return; } catch {}
+            }
+            setCadastrarAberto(false);
+          }}
+          onCadastrado={(c: Cliente) => {
+            // Se essa aba foi aberta pelo "+ Cadastrar" de dentro do
+            // Fechamento (tem window.opener e veio com ?novo=1), avisa a
+            // aba original sozinha e já fecha essa aqui — sem precisar a
+            // pessoa fechar manualmente e buscar o nome de novo.
+            const contextoParam = searchParams.get("contexto");
+            if (window.opener && contextoParam) {
+              try {
+                window.opener.postMessage(
+                  { tipo: "performace_cliente_cadastrado", contexto: contextoParam, cliente: c },
+                  window.location.origin
+                );
+                window.close();
+                return;
+              } catch {
+                // Se por algum motivo não conseguir avisar/fechar (ex: bloqueio
+                // do navegador), cai no comportamento normal abaixo.
+              }
+            }
+            carregarTodos();
+            setCpfDetalhe(c.cpf);
+          }}
         />
       )}
       {cpfDetalhe && (

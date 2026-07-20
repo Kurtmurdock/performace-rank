@@ -33,6 +33,29 @@ export function ClienteBusca({
   const [buscando, setBuscando] = useState(false);
   const [verDadosAberto, setVerDadosAberto] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Identifica esse campo especificamente (Cliente x Autorizado) — usado
+  // pra saber qual dos dois campos deve receber o cliente recém-cadastrado
+  // quando a aba de cadastro avisar de volta.
+  const contexto = label.toLowerCase().includes("autorizado") ? "autorizado" : "cliente";
+
+  // Ouve a aba de cadastro (aberta pelo "+ Cadastrar") avisar sozinha
+  // quando o cliente for salvo — sem precisar fechar a aba e buscar de
+  // novo manualmente. Só reage se o contexto bater com esse campo
+  // específico (evita o cliente cair no campo errado quando os dois
+  // campos — Cliente e Autorizado — estão na mesma tela).
+  useEffect(() => {
+    const ouvinte = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.tipo !== "performace_cliente_cadastrado") return;
+      if (event.data?.contexto !== contexto) return;
+      onChange(event.data.cliente);
+      setQuery("");
+      setResultados([]);
+    };
+    window.addEventListener("message", ouvinte);
+    return () => window.removeEventListener("message", ouvinte);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contexto]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -59,7 +82,7 @@ export function ClienteBusca({
   };
 
   const abrirCadastro = () => {
-    window.open("/clientes?novo=1", "_blank", "noopener");
+    window.open(`/clientes?novo=1&contexto=${contexto}`, "_blank");
   };
 
   if (value) {
@@ -152,18 +175,6 @@ export function ClienteDetalheModal({ cpf, onClose }: { cpf: string; onClose: ()
     </div>
   );
 
-  // Aceita os formatos que já apareceram nos dados salvos (ISO com timestamp,
-  // YYYY-MM-DD do input type=date, ou dígitos crus digitados sem barra antes
-  // da correção) e sempre mostra dd/mm/aaaa.
-  const formatarNascimento = (v?: string) => {
-    if (!v) return undefined;
-    const isoMatch = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (isoMatch) return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
-    const digitos = v.replace(/\D/g, "");
-    if (digitos.length === 8) return `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
-    return v;
-  };
-
   return (
     <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
       <div className="bg-card border border-border rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -182,7 +193,7 @@ export function ClienteDetalheModal({ cpf, onClose }: { cpf: string; onClose: ()
                 {campo("Nome", cliente.nome)}
                 {campo("CPF", cliente.cpf)}
                 {campo("RG", cliente.rg)}
-                {campo("Nascimento", formatarNascimento(cliente.nascimento))}
+                {campo("Nascimento", cliente.nascimento)}
                 {campo("Estado Civil", cliente.estadoCivil)}
                 {campo("Profissão", cliente.profissao)}
                 {campo("Nome do Pai", cliente.nomePai)}
