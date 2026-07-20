@@ -138,7 +138,10 @@ export function EditarMotoModal({
         statusContrato, caixaFinanceira, statusPlaca, gravame, atpvE, medalha,
         temManual: manual, ondeManual, temChaveReserva: chaveReserva, ondeChaveReserva, ondePlaca,
       },
-      valorEntrada: valorEntrada || undefined,
+      // Só manda o custo se realmente mudou — senão toda vez que alguém
+      // salva QUALQUER outra coisa no modal, isso ia disparar à toa a
+      // exigência de senha master, mesmo sem mexer no valor.
+      valorEntrada: valorEntrada !== (moto.valorEntrada || "") ? (valorEntrada || undefined) : undefined,
       senhaMaster: senhaMaster || undefined,
       novoStatus,
     };
@@ -355,7 +358,7 @@ export function EditarMotoModal({
           {/* Valor de entrada (protegido) */}
           <div className="bg-accent/10 border border-accent/30 rounded-lg p-3">
             <label className="text-xs font-semibold uppercase text-accent flex items-center gap-1">
-              <Lock size={11} /> Valor de Entrada / Custo (protegido por senha master)
+              <Lock size={11} /> Valor de Entrada / Custo (protegido por senha master — só gestor)
             </label>
             <div className="flex gap-2 mt-1">
               <input value={valorEntrada} onChange={(e) => setValorEntrada(e.target.value)} placeholder="R$ 0,00"
