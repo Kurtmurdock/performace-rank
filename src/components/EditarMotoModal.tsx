@@ -187,7 +187,7 @@ export function EditarMotoModal({
 
             {(statusEscolhido === "negociacao" || statusEscolhido === "vendido") && (
               <div className="mt-3">
-                <label className="text-xs text-muted-foreground">Loja</label>
+                <label className="text-xs text-muted-foreground">Chão</label>
                 <select value={lojaStatus} onChange={(e) => {
                   const v = e.target.value;
                   setLojaStatus(v);
