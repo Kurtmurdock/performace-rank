@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Radio, Wallet, Megaphone, Link2, Users, ClipboardList, Share2, FileText, Contact, Calendar, LogOut, AlertTriangle, UserSquare2, FolderPlus } from "lucide-react";
+import { Bell, Radio, Wallet, Megaphone, Link2, Users, ClipboardList, Share2, FileText, Contact, Calendar, LogOut, AlertTriangle, UserSquare2, FolderPlus, Briefcase } from "lucide-react";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import { getSessao } from "@/lib/sessao";
 import { NotificacoesModal } from "@/components/NotificacoesModal";
@@ -18,6 +18,7 @@ const ITENS = [
   { label: "Monitor de Anúncios", icon: Megaphone, href: "/anuncios", permitido: undefined },
   { label: "Recicla Lead", icon: Link2, href: "/recicla-lead", permitido: undefined },
   { label: "RH / Gerência", icon: Users, href: "/rh", permitido: ["gestor", "gerente"] },
+  { label: "Gerencial", icon: Briefcase, href: "/gerencial", permitido: ["gestor", "gerente"] },
   { label: "Rotinas", icon: ClipboardList, href: "/rotinas", permitido: ["gestor"] },
   { label: "Conexão", icon: Share2, href: "/conexao", permitido: ["gestor", "gerente"] },
   { label: "Documentação", icon: FileText, href: "/documentacao", permitido: ["gestor", "gerente"] },
