@@ -7,6 +7,7 @@ import { chamarApi, getSessao } from "@/lib/sessao";
 import { ArrowLeft, Lock } from "lucide-react";
 import { ClienteBusca, type Cliente } from "@/components/ClienteBusca";
 import { FormasPagamentoEditor, type FormaPagamento } from "@/components/FormasPagamentoEditor";
+import { SelectComOutro } from "@/components/SelectComOutro";
 
 const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Rio das Ostras","Infinity","Baby Motos"];
 const NOMES_SDR = ["Giovana", "Ana Clara", "Thayna", "Patricia"];
@@ -247,11 +248,9 @@ export default function FechamentoVendaPage() {
 
                   <div>
                     <label className="text-xs text-muted-foreground">Vendedor</label>
-                    <select value={vendedorNome} onChange={(e) => setVendedorNome(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg h-10 px-3 text-sm mt-1">
-                      <option value="">{vendedores.length ? "—" : "Selecione a loja primeiro"}</option>
-                      {vendedores.map((v) => <option key={v}>{v}</option>)}
-                    </select>
+                    <SelectComOutro value={vendedorNome} onChange={setVendedorNome}
+                      opcoes={vendedores} placeholderVazio={vendedores.length ? "—" : "Selecione a loja primeiro"}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg h-10 px-3 text-sm mt-1" />
                   </div>
 
                   <div className="bg-white/5 border border-white/10 rounded-lg p-3">

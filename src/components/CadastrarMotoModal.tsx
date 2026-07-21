@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, FileScan, Check } from "lucide-react";
 import { chamarApi } from "@/lib/sessao";
+import { SelectComOutro } from "@/components/SelectComOutro";
 
 const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Rio das Ostras","Infinity","Baby Motos","Em Transporte"];
 const FORNECEDORES = ["ALEXANDRE&ALAN","CLEBER","MARCIO","GIRO","LOCAMERICA","FELIPPE","MARCUS","VICTOR","BOMCAR","FLUTUANTE"];
@@ -129,11 +130,8 @@ export function CadastrarMotoModal({ onClose, onSalvo }: { onClose: () => void; 
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Marca</label>
-                <select value={dados.marca} onChange={(e) => setDados((d) => ({ ...d, marca: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                  <option value="">—</option>
-                  {MARCAS.map((m) => <option key={m}>{m}</option>)}
-                </select>
+                <SelectComOutro value={dados.marca} onChange={(v) => setDados((d) => ({ ...d, marca: v }))}
+                  opcoes={MARCAS} className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Modelo</label>
@@ -160,19 +158,13 @@ export function CadastrarMotoModal({ onClose, onSalvo }: { onClose: () => void; 
             <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border mt-2">
               <div>
                 <label className="text-xs font-semibold text-accent">Chão/Loja *</label>
-                <select value={chao} onChange={(e) => setChao(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                  <option value="">—</option>
-                  {LOJAS.map((l) => <option key={l}>{l}</option>)}
-                </select>
+                <SelectComOutro value={chao} onChange={setChao}
+                  opcoes={LOJAS} className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-accent">Fornecedor *</label>
-                <select value={fornecedor} onChange={(e) => setFornecedor(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                  <option value="">—</option>
-                  {FORNECEDORES.map((f) => <option key={f}>{f}</option>)}
-                </select>
+                <SelectComOutro value={fornecedor} onChange={setFornecedor}
+                  opcoes={FORNECEDORES} className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
               </div>
             </div>
 

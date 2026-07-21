@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Lock, Unlock, Upload } from "lucide-react";
 import { chamarApi, getSessao } from "@/lib/sessao";
+import { SelectComOutro } from "@/components/SelectComOutro";
 
 type Moto = {
   linha: number;
@@ -80,6 +81,7 @@ export function EditarMotoModal({
   const statusAtual = moto.status.includes("Vendido") ? "vendido" : moto.status.includes("Negociação") ? "negociacao" : "disponivel";
   const [statusEscolhido, setStatusEscolhido] = useState<"disponivel" | "negociacao" | "vendido">(statusAtual);
   const [lojaStatus, setLojaStatus] = useState(moto.chao || "");
+  const [lojaStatusOutro, setLojaStatusOutro] = useState(false);
 
   // Selecionar "Vendido" (ou marcar o contrato como "Em Assinatura") leva
   // direto pra tela de Fechamento de Venda — cliente, autorizado, vendedor
@@ -188,15 +190,32 @@ export function EditarMotoModal({
             {(statusEscolhido === "negociacao" || statusEscolhido === "vendido") && (
               <div className="mt-3">
                 <label className="text-xs text-muted-foreground">Chão</label>
-                <select value={lojaStatus} onChange={(e) => {
-                  const v = e.target.value;
-                  setLojaStatus(v);
-                  salvarStatusRapido(statusEscolhido, v);
-                }}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                  <option value="">—</option>
-                  {LOJAS.map((l) => <option key={l}>{l}</option>)}
-                </select>
+                {lojaStatusOutro ? (
+                  <div className="flex gap-1.5 mt-1">
+                    <input
+                      value={lojaStatus}
+                      onChange={(e) => setLojaStatus(e.target.value)}
+                      onBlur={() => lojaStatus && salvarStatusRapido(statusEscolhido, lojaStatus)}
+                      placeholder="Digite aqui"
+                      autoFocus
+                      className="flex-1 bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm"
+                    />
+                    <button type="button" onClick={() => { setLojaStatusOutro(false); setLojaStatus(""); }}
+                      className="text-xs text-muted-foreground hover:text-accent shrink-0 px-1">↩ Voltar</button>
+                  </div>
+                ) : (
+                  <select value={lojaStatus} onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "__outro__") { setLojaStatusOutro(true); setLojaStatus(""); return; }
+                    setLojaStatus(v);
+                    salvarStatusRapido(statusEscolhido, v);
+                  }}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
+                    <option value="">—</option>
+                    {LOJAS.map((l) => <option key={l}>{l}</option>)}
+                    <option value="__outro__">✏️ Outro (digitar)</option>
+                  </select>
+                )}
               </div>
             )}
 
@@ -255,19 +274,13 @@ export function EditarMotoModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold uppercase text-muted-foreground">Chão/Loja (cadastro)</label>
-              <select value={campos.chao} onChange={(e) => setCampos((c) => ({ ...c, chao: e.target.value }))}
-                className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                <option value="">—</option>
-                {[...LOJAS, "Em Transporte"].map((l) => <option key={l}>{l}</option>)}
-              </select>
+              <SelectComOutro value={campos.chao} onChange={(v) => setCampos((c) => ({ ...c, chao: v }))}
+                opcoes={[...LOJAS, "Em Transporte"]} className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
             </div>
             <div>
               <label className="text-xs font-semibold uppercase text-muted-foreground">Fornecedor</label>
-              <select value={campos.fornecedor} onChange={(e) => setCampos((c) => ({ ...c, fornecedor: e.target.value }))}
-                className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                <option value="">—</option>
-                {FORNECEDORES.map((f) => <option key={f}>{f}</option>)}
-              </select>
+              <SelectComOutro value={campos.fornecedor} onChange={(v) => setCampos((c) => ({ ...c, fornecedor: v }))}
+                opcoes={FORNECEDORES} className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
             </div>
           </div>
 

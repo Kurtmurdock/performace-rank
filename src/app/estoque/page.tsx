@@ -19,7 +19,7 @@ type Moto = {
   dataEntrada?: string; statusPlaca?: string; gravame?: string; atpvE?: string;
   vendedorResponsavel?: string; temManual?: string; ondeManual?: string;
   temChaveReserva?: string; ondeChaveReserva?: string; ondePlaca?: string;
-  fotos?: string[]; dataVenda?: string;
+  fotos?: string[]; dataVenda?: string; dataStatusAtualizado?: string;
 };
 
 type ItemTabela = { chave: string; preco: number };
@@ -29,6 +29,13 @@ const FORNECEDORES = ["ALEXANDRE&ALAN","CLEBER","MARCIO","GIRO","LOCAMERICA","FE
 const MARCAS = ["YAMAHA","HONDA","SHINERAY"];
 const BANCOS = ["A VISTA","BRADESCO LOC","BV AUTOMODELO","BV BOMCAR","BV CLEBER","BV CONFORT","BV LELE","BV SALINAS","BV VISION","PAN AUTOMODELO","PAN CFT","PAN UNIÃO","PAN VISION","SANT ATLÂNTICA","SANT LELE","SANT SALINAS","SANT UNIÃO"];
 const MEDALHAS = ["BRONZE","PRATA","DOURADA"];
+
+function anoMesDe(dataStr?: string) {
+  if (!dataStr) return null;
+  const m = dataStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!m) return null;
+  return `${m[3]}-${m[2].padStart(2, "0")}`;
+}
 
 function diasDesde(dataStr?: string) {
   if (!dataStr) return null;
@@ -114,6 +121,10 @@ export default function EstoquePage() {
   const [fBanco, setFBanco] = useState<string[]>([]);
   const [fMedalha, setFMedalha] = useState<string[]>([]);
   const [fLojaNegociadora, setFLojaNegociadora] = useState<string[]>([]);
+  // Filtro de mês (negociação/venda) — vem no mês atual por padrão.
+  const mesAtualStr = new Date().toISOString().slice(0, 7); // "2026-07"
+  const [fMes, setFMes] = useState(mesAtualStr);
+  const [fMesAtivo, setFMesAtivo] = useState(true); // liga/desliga o filtro (padrão: ligado, mês atual)
 
   const carregar = () => {
     chamarApi({ acao: "rh_listar_estoque_mobile" }).then((data) => {
@@ -180,9 +191,16 @@ export default function EstoquePage() {
       if (fBanco.length && !fBanco.includes((m.caixaFinanceira || "").toUpperCase())) return false;
       if (fMedalha.length && !fMedalha.includes((m.medalha || "").toUpperCase())) return false;
       if (fLojaNegociadora.length && !fLojaNegociadora.some((l) => l.toUpperCase() === lojaNegociadora(m).toUpperCase())) return false;
+      // Filtro de mês: só se aplica a quem tem negociação/venda em
+      // andamento (Em Negociação ou Vendido). Disponível passa direto,
+      // já que não tem data de negociação/venda pra filtrar.
+      if (fMesAtivo && (m.status.includes("Negociação") || m.status.includes("Vendido"))) {
+        const anoMesMoto = anoMesDe(m.dataStatusAtualizado);
+        if (anoMesMoto && anoMesMoto !== fMes) return false;
+      }
       return true;
     });
-  }, [motos, busca, fStatus, fPlaca, fChao, fFornecedor, fMarca, fValor, fContrato, fBanco, fMedalha, fLojaNegociadora, tabelaPrecos]);
+  }, [motos, busca, fStatus, fPlaca, fChao, fFornecedor, fMarca, fValor, fContrato, fBanco, fMedalha, fLojaNegociadora, fMes, fMesAtivo, tabelaPrecos]);
 
   const disp = filtradas.filter((m) => !m.status.includes("Vendido") && !m.status.includes("Negociação") && !m.status.includes("Bloqueada"));
   const neg = filtradas.filter((m) => m.status.includes("Negociação"));
@@ -243,11 +261,15 @@ export default function EstoquePage() {
           {moto.ondePlaca && <p>📍 Placa em: {moto.ondePlaca}</p>}
         </div>
 
-        {moto.dataEntrada && (
+        {(moto.dataStatusAtualizado || moto.dataEntrada) && (
           <p className="text-xs mb-2">
-            <span className="text-yellow-600">📅 Cadastro: {moto.dataEntrada}</span>
+            <span className="text-yellow-600">
+              {moto.status?.includes("Negociação") ? "🔄 Em Negociação: " :
+                moto.status?.includes("Vendido") ? "🏁 Vendida: " : "🕓 Atualizado: "}
+              {moto.dataStatusAtualizado || moto.dataEntrada}
+            </span>
             {diasDesde(moto.dataEntrada) !== null && (
-              <span className="text-muted-foreground"> · {diasDesde(moto.dataEntrada)} dias</span>
+              <span className="text-muted-foreground"> · {diasDesde(moto.dataEntrada)} dias em estoque</span>
             )}
           </p>
         )}
@@ -392,6 +414,23 @@ export default function EstoquePage() {
             <FiltroDropdown label="Banco" opcoes={BANCOS} selecionados={fBanco} onChange={setFBanco} />
             <FiltroDropdown label="Medalha" opcoes={MEDALHAS} selecionados={fMedalha} onChange={setFMedalha} />
             <FiltroDropdown label="Loja Negociadora" opcoes={LOJAS.map((l) => l.toUpperCase())} selecionados={fLojaNegociadora} onChange={setFLojaNegociadora} />
+          </div>
+
+          <div className="flex items-center gap-2 mb-4 bg-white/5 border border-white/10 rounded-lg px-3 py-2 w-fit">
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <input type="checkbox" checked={fMesAtivo} onChange={(e) => setFMesAtivo(e.target.checked)} className="w-4 h-4" />
+              Filtrar por mês (negociação/venda)
+            </label>
+            <input
+              type="month"
+              value={fMes}
+              onChange={(e) => setFMes(e.target.value)}
+              disabled={!fMesAtivo}
+              className="bg-white/5 border border-white/10 rounded-lg h-8 px-2 text-xs disabled:opacity-40"
+            />
+            {fMes !== mesAtualStr && (
+              <button onClick={() => setFMes(mesAtualStr)} className="text-xs text-accent underline">Voltar pro mês atual</button>
+            )}
           </div>
 
           {totalFiltrosAtivos > 0 && (
