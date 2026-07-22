@@ -95,6 +95,7 @@ export default function GerencialPage() {
   const sessao = getSessao();
   const podeAcessar = sessao?.cargo === "gerente" || sessao?.cargo === "gestor";
   const [cards, setCards] = useState<Card[]>([]);
+  const [expandidos, setExpandidos] = useState<Set<number>>(new Set());
   const [carregando, setCarregando] = useState(true);
   const [filtroPago, setFiltroPago] = useState<"" | "pago" | "nao_pago">("");
 
@@ -169,11 +170,28 @@ export default function GerencialPage() {
           <div className="space-y-3">
             {!carregando && cards.map((card, idx) => (
               <div key={idx} className="bg-card border border-border rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-accent">{card.destino}</span>
                   <span className="text-[11px] text-muted-foreground">{formatarDataHora(card.dataHora)}</span>
                 </div>
-                <div className="space-y-2">
+
+                {/* Texto completo da mensagem — igual sempre foi, sem cortar nada */}
+                <p className={`text-xs whitespace-pre-line text-muted-foreground mb-1 ${expandidos.has(idx) ? "" : "line-clamp-4"}`}>
+                  {card.mensagem}
+                </p>
+                <button
+                  onClick={() => setExpandidos((s) => {
+                    const novo = new Set(s);
+                    if (novo.has(idx)) novo.delete(idx); else novo.add(idx);
+                    return novo;
+                  })}
+                  className="text-[11px] text-accent underline mb-3"
+                >
+                  {expandidos.has(idx) ? "Ver menos" : "Ver mais"}
+                </button>
+
+                {/* Botões de Pago/Comprovante — só isso é novo, o resto acima é o card de sempre */}
+                <div className="space-y-2 pt-2 border-t border-white/5">
                   {card.comissoes.map((comissao) => (
                     <LinhaComissao
                       key={comissao.role}

@@ -111,20 +111,40 @@ export default function EstoquePage() {
   // pedido explícito do Alan (não muda o cargo dele, só a permissão).
   const podeEditar = sessao?.cargo === "gestor" || sessao?.cargo === "gerente" || sessao?.nome?.toLowerCase() === "vendedor1";
 
-  const [fStatus, setFStatus] = useState<string[]>([]);
-  const [fPlaca, setFPlaca] = useState<string[]>([]);
-  const [fChao, setFChao] = useState<string[]>([]);
-  const [fFornecedor, setFFornecedor] = useState<string[]>([]);
-  const [fMarca, setFMarca] = useState<string[]>([]);
-  const [fValor, setFValor] = useState<string[]>([]);
-  const [fContrato, setFContrato] = useState<string[]>([]);
-  const [fBanco, setFBanco] = useState<string[]>([]);
-  const [fMedalha, setFMedalha] = useState<string[]>([]);
-  const [fLojaNegociadora, setFLojaNegociadora] = useState<string[]>([]);
+  // Lembra os filtros usados entre visitas (localStorage, sem custo de
+  // servidor nenhum) — carrega uma vez só na abertura da página.
+  const FILTROS_SALVOS_KEY = "performace_filtros_estoque";
+  type FiltrosSalvos = {
+    fStatus?: string[]; fPlaca?: string[]; fChao?: string[]; fFornecedor?: string[];
+    fMarca?: string[]; fValor?: string[]; fContrato?: string[]; fBanco?: string[];
+    fMedalha?: string[]; fLojaNegociadora?: string[];
+  };
+  const filtrosSalvos: FiltrosSalvos = (() => {
+    if (typeof window === "undefined") return {};
+    try { return JSON.parse(localStorage.getItem(FILTROS_SALVOS_KEY) || "{}"); } catch { return {}; }
+  })();
+
+  const [fStatus, setFStatus] = useState<string[]>(filtrosSalvos.fStatus || []);
+  const [fPlaca, setFPlaca] = useState<string[]>(filtrosSalvos.fPlaca || []);
+  const [fChao, setFChao] = useState<string[]>(filtrosSalvos.fChao || []);
+  const [fFornecedor, setFFornecedor] = useState<string[]>(filtrosSalvos.fFornecedor || []);
+  const [fMarca, setFMarca] = useState<string[]>(filtrosSalvos.fMarca || []);
+  const [fValor, setFValor] = useState<string[]>(filtrosSalvos.fValor || []);
+  const [fContrato, setFContrato] = useState<string[]>(filtrosSalvos.fContrato || []);
+  const [fBanco, setFBanco] = useState<string[]>(filtrosSalvos.fBanco || []);
+  const [fMedalha, setFMedalha] = useState<string[]>(filtrosSalvos.fMedalha || []);
+  const [fLojaNegociadora, setFLojaNegociadora] = useState<string[]>(filtrosSalvos.fLojaNegociadora || []);
   // Filtro de mês (negociação/venda) — vem no mês atual por padrão.
   const mesAtualStr = new Date().toISOString().slice(0, 7); // "2026-07"
   const [fMes, setFMes] = useState(mesAtualStr);
   const [fMesAtivo, setFMesAtivo] = useState(true); // liga/desliga o filtro (padrão: ligado, mês atual)
+
+  useEffect(() => {
+    const paraSalvar: FiltrosSalvos = {
+      fStatus, fPlaca, fChao, fFornecedor, fMarca, fValor, fContrato, fBanco, fMedalha, fLojaNegociadora,
+    };
+    try { localStorage.setItem(FILTROS_SALVOS_KEY, JSON.stringify(paraSalvar)); } catch {}
+  }, [fStatus, fPlaca, fChao, fFornecedor, fMarca, fValor, fContrato, fBanco, fMedalha, fLojaNegociadora]);
 
   const carregar = () => {
     chamarApi({ acao: "rh_listar_estoque_mobile" }).then((data) => {

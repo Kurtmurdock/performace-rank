@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, Radio, Wallet, Megaphone, Link2, Users, ClipboardList, Share2, FileText, Contact, Calendar, LogOut, AlertTriangle, UserSquare2, FolderPlus, Briefcase } from "lucide-react";
 import { RainbowButton } from "@/components/ui/rainbow-button";
-import { getSessao } from "@/lib/sessao";
+import { getSessao, chamarApi } from "@/lib/sessao";
 import { NotificacoesModal } from "@/components/NotificacoesModal";
 import { AlertasModal } from "@/components/AlertasModal";
 import { AnuncioModal } from "@/components/AnuncioModal";
@@ -114,6 +114,39 @@ export function BellButton() {
 export function AlertasButton() {
   const [aberto, setAberto] = useState(false);
   const sessao = getSessao();
+
+  // Notificação nativa do navegador pra negociação parada — roda sozinho
+  // em segundo plano, sem custo de servidor além do polling já existente
+  // (só reaproveita a mesma ação rh_alertas_negociacao). Não repete aviso
+  // pra a mesma moto (guarda quais já avisou no localStorage).
+  useEffect(() => {
+    if (!sessao) return;
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "default") Notification.requestPermission();
+
+    const checar = () => {
+      if (Notification.permission !== "granted") return;
+      chamarApi({ acao: "rh_alertas_negociacao", gerente: sessao.nome }).then((data) => {
+        if (!data || !data.ok || !data.alertas?.length) return;
+        const jaAvisados: number[] = JSON.parse(localStorage.getItem("performace_alertas_avisados") || "[]");
+        const novos = data.alertas.filter((a: { linha: number }) => !jaAvisados.includes(a.linha));
+        novos.forEach((a: { linha: number; marca: string; modelo: string; placa: string }) => {
+          new Notification("⚠️ Negociação parada", {
+            body: `${a.marca} ${a.modelo} (${a.placa || "sem placa"}) — sem atualização hoje.`,
+            tag: "performace-alerta-" + a.linha,
+          });
+        });
+        if (novos.length) {
+          localStorage.setItem("performace_alertas_avisados", JSON.stringify([...jaAvisados, ...novos.map((a: { linha: number }) => a.linha)]));
+        }
+      });
+    };
+    checar();
+    const intervalo = setInterval(checar, 120000); // a cada 2 minutos
+    return () => clearInterval(intervalo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessao?.nome]);
+
   if (!sessao) return null;
   return (
     <>

@@ -4,6 +4,7 @@ import { TarjaNoticias } from "@/components/TarjaNoticias";
 import { AuthGate } from "@/components/AuthGate";
 import { TarjaAnuncio } from "@/components/TarjaAnuncio";
 import { AlertasButton, AnuncioButton } from "@/components/Sidebar";
+import { BuscaRapidaGlobal } from "@/components/BuscaRapidaGlobal";
 
 export const metadata: Metadata = {
   title: "Performace · Rank de Vendas",
@@ -22,6 +23,7 @@ export default function RootLayout({
         <TarjaAnuncio />
         <AlertasButton />
         <AnuncioButton />
+        <BuscaRapidaGlobal />
         <AuthGate>{children}</AuthGate>
       </body>
     </html>

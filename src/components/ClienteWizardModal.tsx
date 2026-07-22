@@ -7,6 +7,23 @@ import type { Cliente } from "@/components/ClienteBusca";
 
 const ESTADOS_CIVIS = ["Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União Estável"];
 
+// Valida CPF de verdade (dígito verificador), não só formato — evita
+// gente digitando CPF errado sem perceber até o cadastro falhar depois.
+function cpfValido(cpfBruto: string): boolean {
+  const cpf = (cpfBruto || "").replace(/\D/g, "");
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  let soma = 0;
+  for (let i = 0; i < 9; i++) soma += parseInt(cpf[i]) * (10 - i);
+  let resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(cpf[9])) return false;
+  soma = 0;
+  for (let i = 0; i < 10; i++) soma += parseInt(cpf[i]) * (11 - i);
+  resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  return resto === parseInt(cpf[10]);
+}
+
 const ETAPAS = [
   { titulo: "Dados Pessoais", campos: ["nome", "cpf", "rg", "nascimento"] },
   { titulo: "Complemento", campos: ["estadoCivil", "profissao", "nomePai", "nomeMae"] },
@@ -36,13 +53,13 @@ export function ClienteWizardModal({
   const ultimaEtapa = etapa === ETAPAS.length - 1;
 
   const validarEtapaAtual = () => {
-    if (etapa === 0) return !!(dados.nome && dados.cpf && dados.rg && dados.nascimento);
+    if (etapa === 0) return !!(dados.nome && dados.cpf && cpfValido(dados.cpf) && dados.rg && dados.nascimento);
     return true; // demais etapas: campos complementares, não bloqueiam avanço
   };
 
   const avancar = () => {
     if (!validarEtapaAtual()) {
-      setMsg("❌ Preencha nome, CPF, RG e nascimento antes de continuar.");
+      setMsg(dados.cpf && !cpfValido(dados.cpf) ? "❌ CPF inválido — confira os números." : "❌ Preencha nome, CPF, RG e nascimento antes de continuar.");
       return;
     }
     setMsg("");
@@ -97,12 +114,14 @@ export function ClienteWizardModal({
                     <option value="">—</option>
                     {ESTADOS_CIVIS.map((ec) => <option key={ec}>{ec}</option>)}
                   </select>
-                ) : chave === "nascimento" ? (
-                  <input type="date" value={dados[chave] || ""} onChange={(e) => setCampo(chave, e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
                 ) : (
                   <input value={dados[chave] || ""} onChange={(e) => setCampo(chave, e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1" />
+                )}
+                {chave === "cpf" && dados.cpf && dados.cpf.replace(/\D/g, "").length >= 11 && (
+                  <p className={`text-[11px] mt-1 ${cpfValido(dados.cpf) ? "text-green-400" : "text-accent"}`}>
+                    {cpfValido(dados.cpf) ? "✓ CPF válido" : "✗ CPF inválido — confira os números"}
+                  </p>
                 )}
               </div>
             ))}
