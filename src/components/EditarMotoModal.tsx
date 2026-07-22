@@ -9,7 +9,7 @@ type Moto = {
   linha: number;
   marca: string; modelo: string; versao?: string; ano?: string;
   placa: string; chassi: string; renavam?: string; cor: string; km?: string;
-  chao: string; fornecedor: string; status: string;
+  chao: string; fornecedor: string; status: string; lojaVenda?: string;
   valorEntrada?: string; statusContrato?: string; caixaFinanceira?: string;
   statusPlaca?: string; gravame?: string; atpvE?: string; medalha?: string;
   manual?: string; ondeManual?: string; chaveReserva?: string; ondeChaveReserva?: string; ondePlaca?: string;
@@ -80,7 +80,7 @@ export function EditarMotoModal({
   // ── Status da Negociação — gatilho pra tela de Fechamento de Venda ──
   const statusAtual = moto.status.includes("Vendido") ? "vendido" : moto.status.includes("Negociação") ? "negociacao" : "disponivel";
   const [statusEscolhido, setStatusEscolhido] = useState<"disponivel" | "negociacao" | "vendido">(statusAtual);
-  const [lojaStatus, setLojaStatus] = useState(moto.chao || "");
+  const [lojaStatus, setLojaStatus] = useState(moto.lojaVenda || moto.chao || "");
   const [lojaStatusOutro, setLojaStatusOutro] = useState(false);
 
   // Selecionar "Vendido" (ou marcar o contrato como "Em Assinatura") leva
