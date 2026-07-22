@@ -239,15 +239,15 @@ export default function EstoquePage() {
         </div>
 
         <p className="text-[10px] text-muted-foreground font-mono mb-1">CÓD: {moto.linha}</p>
-        <p className="text-xs text-muted-foreground uppercase">{moto.marca}</p>
-        <p className="font-bold text-lg leading-tight">{moto.modelo}</p>
-        <p className="text-xs text-muted-foreground mb-2">{moto.ano}{moto.cor ? ` · ${moto.cor}` : ""}</p>
+        <p className="text-sm text-muted-foreground uppercase">{moto.marca}</p>
+        <p className="font-bold text-xl leading-tight">{moto.modelo}</p>
+        <p className="text-sm text-muted-foreground mb-2">{moto.ano}{moto.cor ? ` · ${moto.cor}` : ""}</p>
 
         <div className="bg-white/5 rounded-lg px-3 py-1.5 font-mono text-sm font-bold mb-2">
           {moto.placa || "Sem placa"}
         </div>
 
-        <div className="space-y-1 text-xs mb-2">
+        <div className="space-y-1 text-sm mb-2">
           {moto.statusContrato && <p className="bg-purple-500/10 text-purple-300 rounded px-2 py-1">📝 Contrato: {moto.statusContrato}</p>}
           {moto.caixaFinanceira && <p className="bg-purple-500/10 text-purple-300 rounded px-2 py-1">🏦 {moto.caixaFinanceira}</p>}
           {moto.statusPlaca && <p className="bg-purple-500/10 text-purple-300 rounded px-2 py-1">🪪 {moto.statusPlaca}</p>}
@@ -255,14 +255,14 @@ export default function EstoquePage() {
           {moto.atpvE && <p className="bg-purple-500/10 text-purple-300 rounded px-2 py-1">📑 ATPV-E: {moto.atpvE}</p>}
         </div>
 
-        <div className="space-y-0.5 text-xs text-muted-foreground mb-2">
+        <div className="space-y-0.5 text-sm text-muted-foreground mb-2">
           {moto.temManual && <p>📘 Manual: {moto.temManual}{moto.temManual === "Possui" && moto.ondeManual ? ` — ${moto.ondeManual}` : ""}</p>}
           {moto.temChaveReserva && <p>🔑 Chave Reserva: {moto.temChaveReserva}{moto.temChaveReserva === "Possui" && moto.ondeChaveReserva ? ` — ${moto.ondeChaveReserva}` : ""}</p>}
           {moto.ondePlaca && <p>📍 Placa em: {moto.ondePlaca}</p>}
         </div>
 
         {(moto.dataStatusAtualizado || moto.dataEntrada) && (
-          <p className="text-xs mb-2">
+          <p className="text-sm mb-2">
             <span className="text-yellow-600">
               {moto.status?.includes("Negociação") ? "🔄 Em Negociação: " :
                 moto.status?.includes("Vendido") ? "🏁 Vendida: " : "🕓 Atualizado: "}
@@ -275,7 +275,7 @@ export default function EstoquePage() {
         )}
 
         <hr className="border-border my-2" />
-        <div className="space-y-0.5 text-xs text-muted-foreground mb-2">
+        <div className="space-y-0.5 text-sm text-muted-foreground mb-2">
           {moto.km !== "" && moto.km !== undefined && <p>🛣 {moto.km} km</p>}
           {moto.chassi && <p>🔩 {moto.chassi}</p>}
           {moto.renavam && <p>📄 {moto.renavam}</p>}
@@ -284,15 +284,15 @@ export default function EstoquePage() {
         </div>
 
         {precoPadrao !== null ? (
-          <p className="text-green-400 font-bold text-lg mb-1">💰 {formatBRL(precoPadrao)}</p>
+          <p className="text-green-400 font-bold text-xl mb-1">💰 {formatBRL(precoPadrao)}</p>
         ) : (
-          <p className="text-orange-400 text-xs font-semibold mb-1">📄 Subir Nota ou CRLV</p>
+          <p className="text-orange-400 text-sm font-semibold mb-1">📄 Subir Nota ou CRLV</p>
         )}
 
         {loja && emAcao && (
-          <p className="text-xs text-yellow-600 mb-2">
+          <p className="text-sm text-yellow-600 mb-2">
             📍 {loja}
-            {chaoFisico && chaoFisico !== loja && <span className="opacity-50 text-[10px]"> · chão: {chaoFisico}</span>}
+            {chaoFisico && chaoFisico !== loja && <span className="opacity-50 text-xs"> · chão: {chaoFisico}</span>}
           </p>
         )}
 
@@ -337,7 +337,7 @@ export default function EstoquePage() {
           <span className="text-xs bg-card border border-border rounded-full px-2 py-0.5">{lista.length}</span>
           <div className="h-px flex-1 bg-border" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
           {lista.map((moto) => <div key={moto.linha} className="fade-slide-up"><CardMoto moto={moto} /></div>)}
         </div>
       </div>
