@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import { Sidebar, TopBar, BellButton } from "@/components/Sidebar";
 import { chamarApi, getSessao } from "@/lib/sessao";
-import { ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft, Upload, Pencil } from "lucide-react";
 import { useConfigVisual } from "@/lib/useConfigVisual";
 
 type Lead = { id: number; nome: string; telefone: string; regiao: "rio" | "lagos" };
+type GrupoLead = { regiao: string; nome: string; grupoId: string };
+type Instancia = { nome: string; instancia: string };
 const DDDS_RIO = ["21"];
 
 export default function LeadsPage() {
@@ -16,6 +18,53 @@ export default function LeadsPage() {
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set());
   const [status, setStatus] = useState("");
   const [disparando, setDisparando] = useState(false);
+
+  // Grupo de destino (loja) e instância do WhatsApp — antes era sorteio
+  // aleatório entre os grupos da região; agora o Alan escolhe qual grupo
+  // e qual instância usar, com nome editável (ele ainda tá descobrindo
+  // qual grupo é de qual loja).
+  const [grupos, setGrupos] = useState<GrupoLead[]>([]);
+  const [instancias, setInstancias] = useState<Instancia[]>([]);
+  const [grupoEscolhido, setGrupoEscolhido] = useState("");
+  const [instanciaEscolhida, setInstanciaEscolhida] = useState("");
+  const [editandoGrupo, setEditandoGrupo] = useState(false);
+  const [nomeGrupoEditado, setNomeGrupoEditado] = useState("");
+  const [novaInstanciaAberta, setNovaInstanciaAberta] = useState(false);
+  const [novaInstanciaNome, setNovaInstanciaNome] = useState("");
+  const [novaInstanciaValor, setNovaInstanciaValor] = useState("");
+
+  useEffect(() => {
+    chamarApi({ acao: "evo_listar_grupos_leads" }).then((data) => {
+      if (data && data.ok) {
+        setGrupos(data.grupos || []);
+        if (data.grupos?.length) setGrupoEscolhido(data.grupos[0].grupoId);
+      }
+    });
+    chamarApi({ acao: "evo_listar_instancias" }).then((data) => {
+      if (data && data.ok) {
+        setInstancias(data.instancias || []);
+        if (data.instancias?.length) setInstanciaEscolhida(data.instancias[0].instancia);
+      }
+    });
+  }, []);
+
+  const salvarNomeGrupo = async () => {
+    if (!nomeGrupoEditado.trim() || !grupoEscolhido) return;
+    await chamarApi({ acao: "evo_renomear_grupo_leads", grupoId: grupoEscolhido, novoNome: nomeGrupoEditado.trim() });
+    setGrupos((gs) => gs.map((g) => g.grupoId === grupoEscolhido ? { ...g, nome: nomeGrupoEditado.trim() } : g));
+    setEditandoGrupo(false);
+  };
+
+  const salvarNovaInstancia = async () => {
+    if (!novaInstanciaNome.trim() || !novaInstanciaValor.trim()) return;
+    const data = await chamarApi({ acao: "evo_salvar_instancia", nome: novaInstanciaNome.trim(), instancia: novaInstanciaValor.trim() });
+    if (data && data.ok) {
+      setInstancias((is) => [...is, { nome: novaInstanciaNome.trim(), instancia: novaInstanciaValor.trim() }]);
+      setInstanciaEscolhida(novaInstanciaValor.trim());
+      setNovaInstanciaAberta(false);
+      setNovaInstanciaNome(""); setNovaInstanciaValor("");
+    }
+  };
 
   const processarArquivo = (file: File) => {
     const reader = new FileReader();
@@ -58,7 +107,7 @@ export default function LeadsPage() {
     for (let i = 0; i < escolhidos.length; i += TAMANHO_LOTE) {
       const lote = escolhidos.slice(i, i + TAMANHO_LOTE);
       setStatus(`Enviando... (${enviados}/${escolhidos.length})`);
-      const data = await chamarApi({ acao: "evo_disparar_leads", leads: lote });
+      const data = await chamarApi({ acao: "evo_disparar_leads", leads: lote, grupoId: grupoEscolhido, instancia: instanciaEscolhida });
       if (data && data.ok) enviados += data.enviados || lote.length;
       else { setStatus("❌ " + ((data && data.erro) || "Erro no disparo.")); setDisparando(false); return; }
     }
@@ -146,6 +195,53 @@ export default function LeadsPage() {
                   </div>
                 </div>
               </div>
+              <div className="bg-card border border-border rounded-lg p-3 mb-4 space-y-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Grupo de destino (loja)</label>
+                  {editandoGrupo ? (
+                    <div className="flex gap-1.5 mt-1">
+                      <input value={nomeGrupoEditado} onChange={(e) => setNomeGrupoEditado(e.target.value)} placeholder="Novo nome"
+                        autoFocus className="flex-1 bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
+                      <button onClick={salvarNomeGrupo} className="h-9 px-3 rounded-lg bg-accent text-white text-xs font-semibold">Salvar</button>
+                      <button onClick={() => setEditandoGrupo(false)} className="h-9 px-2 text-xs text-muted-foreground">Cancelar</button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-1.5 mt-1">
+                      <select value={grupoEscolhido} onChange={(e) => setGrupoEscolhido(e.target.value)}
+                        className="flex-1 bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm">
+                        {grupos.map((g) => <option key={g.grupoId} value={g.grupoId}>{g.nome} ({g.regiao === "rio" ? "Rio" : "Lagos"})</option>)}
+                      </select>
+                      <button onClick={() => { setNomeGrupoEditado(grupos.find((g) => g.grupoId === grupoEscolhido)?.nome || ""); setEditandoGrupo(true); }}
+                        className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:border-accent" title="Renomear grupo">
+                        <Pencil size={13} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground">Instância do WhatsApp</label>
+                  {novaInstanciaAberta ? (
+                    <div className="flex gap-1.5 mt-1">
+                      <input value={novaInstanciaNome} onChange={(e) => setNovaInstanciaNome(e.target.value)} placeholder="Nome (ex: Instância 3)"
+                        className="flex-1 bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
+                      <input value={novaInstanciaValor} onChange={(e) => setNovaInstanciaValor(e.target.value)} placeholder="Nome real na Evolution"
+                        className="flex-1 bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
+                      <button onClick={salvarNovaInstancia} className="h-9 px-3 rounded-lg bg-accent text-white text-xs font-semibold">Salvar</button>
+                      <button onClick={() => setNovaInstanciaAberta(false)} className="h-9 px-2 text-xs text-muted-foreground">Cancelar</button>
+                    </div>
+                  ) : (
+                    <select value={instanciaEscolhida} onChange={(e) => {
+                      if (e.target.value === "__nova__") { setNovaInstanciaAberta(true); return; }
+                      setInstanciaEscolhida(e.target.value);
+                    }} className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
+                      {instancias.map((i) => <option key={i.instancia} value={i.instancia}>{i.nome}</option>)}
+                      <option value="__nova__">✏️ Cadastrar nova instância (até 10)</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+
               <button onClick={disparar} disabled={disparando} className="w-full h-12 rounded-lg bg-accent text-white font-bold disabled:opacity-60">
                 🚀 Disparar {selecionados.size} lead(s) selecionado(s)
               </button>
