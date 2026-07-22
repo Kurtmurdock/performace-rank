@@ -51,8 +51,11 @@ export default function LeadsPage() {
     chamarApi({ acao: "evo_listar_instancias" }).then((data) => {
       if (data && data.ok) {
         setInstancias(data.instancias || []);
-        const primeiraComValor = (data.instancias || []).find((i: Instancia) => i.instancia);
-        if (primeiraComValor) setInstanciaEscolhida(primeiraComValor.instancia);
+        const lista: Instancia[] = data.instancias || [];
+        // "atlantica eventos" é a única conectada agora — vem selecionada
+        // por padrão, pra evitar disparo falhar por instância desconectada.
+        const preferida = lista.find((i) => i.instancia === "atlantica eventos") || lista.find((i) => i.instancia);
+        if (preferida) setInstanciaEscolhida(preferida.instancia);
       }
     });
   }, []);
