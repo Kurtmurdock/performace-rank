@@ -19,51 +19,67 @@ export default function LeadsPage() {
   const [status, setStatus] = useState("");
   const [disparando, setDisparando] = useState(false);
 
-  // Grupo de destino (loja) e instância do WhatsApp — antes era sorteio
-  // aleatório entre os grupos da região; agora o Alan escolhe qual grupo
-  // e qual instância usar, com nome editável (ele ainda tá descobrindo
-  // qual grupo é de qual loja).
+  // Grupo de destino por REGIÃO (um pra Lagos, outro pro Rio — já que os
+  // leads já são separados por região automaticamente) e instância do
+  // WhatsApp — antes era sorteio aleatório entre os grupos; agora o Alan
+  // escolhe, com nome editável (ele ainda tá descobrindo qual grupo é de
+  // qual loja) e o código de contato sempre visível.
   const [grupos, setGrupos] = useState<GrupoLead[]>([]);
-  const [instancias, setInstancias] = useState<Instancia[]>([]);
-  const [grupoEscolhido, setGrupoEscolhido] = useState("");
-  const [instanciaEscolhida, setInstanciaEscolhida] = useState("");
-  const [editandoGrupo, setEditandoGrupo] = useState(false);
+  const [grupoLagos, setGrupoLagos] = useState("");
+  const [grupoRio, setGrupoRio] = useState("");
+  const [editandoGrupoId, setEditandoGrupoId] = useState<string | null>(null);
   const [nomeGrupoEditado, setNomeGrupoEditado] = useState("");
-  const [novaInstanciaAberta, setNovaInstanciaAberta] = useState(false);
-  const [novaInstanciaNome, setNovaInstanciaNome] = useState("");
-  const [novaInstanciaValor, setNovaInstanciaValor] = useState("");
+
+  // 10 vagas fixas de instância — as 2 primeiras já conhecidas, as outras
+  // 8 o Alan preenche conforme for criando novas.
+  const [instancias, setInstancias] = useState<Instancia[]>([]);
+  const [instanciaEscolhida, setInstanciaEscolhida] = useState("");
+  const [salvandoInstancias, setSalvandoInstancias] = useState(false);
+  const [msgInstancias, setMsgInstancias] = useState("");
 
   useEffect(() => {
     chamarApi({ acao: "evo_listar_grupos_leads" }).then((data) => {
       if (data && data.ok) {
-        setGrupos(data.grupos || []);
-        if (data.grupos?.length) setGrupoEscolhido(data.grupos[0].grupoId);
+        const lista: GrupoLead[] = data.grupos || [];
+        setGrupos(lista);
+        const primeiroLagos = lista.find((g) => g.regiao === "lagos");
+        const primeiroRio = lista.find((g) => g.regiao === "rio");
+        if (primeiroLagos) setGrupoLagos(primeiroLagos.grupoId);
+        if (primeiroRio) setGrupoRio(primeiroRio.grupoId);
       }
     });
     chamarApi({ acao: "evo_listar_instancias" }).then((data) => {
       if (data && data.ok) {
         setInstancias(data.instancias || []);
-        if (data.instancias?.length) setInstanciaEscolhida(data.instancias[0].instancia);
+        const primeiraComValor = (data.instancias || []).find((i: Instancia) => i.instancia);
+        if (primeiraComValor) setInstanciaEscolhida(primeiraComValor.instancia);
       }
     });
   }, []);
 
-  const salvarNomeGrupo = async () => {
-    if (!nomeGrupoEditado.trim() || !grupoEscolhido) return;
-    await chamarApi({ acao: "evo_renomear_grupo_leads", grupoId: grupoEscolhido, novoNome: nomeGrupoEditado.trim() });
-    setGrupos((gs) => gs.map((g) => g.grupoId === grupoEscolhido ? { ...g, nome: nomeGrupoEditado.trim() } : g));
-    setEditandoGrupo(false);
+  const salvarNomeGrupo = async (grupoId: string) => {
+    if (!nomeGrupoEditado.trim()) return;
+    await chamarApi({ acao: "evo_renomear_grupo_leads", grupoId, novoNome: nomeGrupoEditado.trim() });
+    setGrupos((gs) => gs.map((g) => g.grupoId === grupoId ? { ...g, nome: nomeGrupoEditado.trim() } : g));
+    setEditandoGrupoId(null);
   };
 
-  const salvarNovaInstancia = async () => {
-    if (!novaInstanciaNome.trim() || !novaInstanciaValor.trim()) return;
-    const data = await chamarApi({ acao: "evo_salvar_instancia", nome: novaInstanciaNome.trim(), instancia: novaInstanciaValor.trim() });
+  const atualizarInstancia = (idx: number, campo: "nome" | "instancia", valor: string) => {
+    setInstancias((is) => is.map((item, i) => i === idx ? { ...item, [campo]: valor } : item));
+  };
+
+  const salvarInstancias = async () => {
+    setSalvandoInstancias(true);
+    setMsgInstancias("");
+    const data = await chamarApi({ acao: "evo_salvar_todas_instancias", instancias });
     if (data && data.ok) {
-      setInstancias((is) => [...is, { nome: novaInstanciaNome.trim(), instancia: novaInstanciaValor.trim() }]);
-      setInstanciaEscolhida(novaInstanciaValor.trim());
-      setNovaInstanciaAberta(false);
-      setNovaInstanciaNome(""); setNovaInstanciaValor("");
+      setMsgInstancias("✅ Instâncias salvas!");
+      const primeiraComValor = instancias.find((i) => i.instancia);
+      if (primeiraComValor && !instanciaEscolhida) setInstanciaEscolhida(primeiraComValor.instancia);
+    } else {
+      setMsgInstancias("❌ " + ((data && data.erro) || "Erro ao salvar."));
     }
+    setSalvandoInstancias(false);
   };
 
   const processarArquivo = (file: File) => {
@@ -107,7 +123,7 @@ export default function LeadsPage() {
     for (let i = 0; i < escolhidos.length; i += TAMANHO_LOTE) {
       const lote = escolhidos.slice(i, i + TAMANHO_LOTE);
       setStatus(`Enviando... (${enviados}/${escolhidos.length})`);
-      const data = await chamarApi({ acao: "evo_disparar_leads", leads: lote, grupoId: grupoEscolhido, instancia: instanciaEscolhida });
+      const data = await chamarApi({ acao: "evo_disparar_leads", leads: lote, grupoLagos, grupoRio, instancia: instanciaEscolhida });
       if (data && data.ok) enviados += data.enviados || lote.length;
       else { setStatus("❌ " + ((data && data.erro) || "Erro no disparo.")); setDisparando(false); return; }
     }
@@ -195,51 +211,87 @@ export default function LeadsPage() {
                   </div>
                 </div>
               </div>
-              <div className="bg-card border border-border rounded-lg p-3 mb-4 space-y-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Grupo de destino (loja)</label>
-                  {editandoGrupo ? (
-                    <div className="flex gap-1.5 mt-1">
-                      <input value={nomeGrupoEditado} onChange={(e) => setNomeGrupoEditado(e.target.value)} placeholder="Novo nome"
-                        autoFocus className="flex-1 bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
-                      <button onClick={salvarNomeGrupo} className="h-9 px-3 rounded-lg bg-accent text-white text-xs font-semibold">Salvar</button>
-                      <button onClick={() => setEditandoGrupo(false)} className="h-9 px-2 text-xs text-muted-foreground">Cancelar</button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-1.5 mt-1">
-                      <select value={grupoEscolhido} onChange={(e) => setGrupoEscolhido(e.target.value)}
-                        className="flex-1 bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm">
-                        {grupos.map((g) => <option key={g.grupoId} value={g.grupoId}>{g.nome} ({g.regiao === "rio" ? "Rio" : "Lagos"})</option>)}
-                      </select>
-                      <button onClick={() => { setNomeGrupoEditado(grupos.find((g) => g.grupoId === grupoEscolhido)?.nome || ""); setEditandoGrupo(true); }}
-                        className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:border-accent" title="Renomear grupo">
-                        <Pencil size={13} />
-                      </button>
-                    </div>
-                  )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-card border border-border rounded-lg p-3">
+                  <p className="text-xs font-bold text-accent mb-2">Grupos — Lagos (escolha 1)</p>
+                  <div className="space-y-1.5">
+                    {grupos.filter((g) => g.regiao === "lagos").map((g) => (
+                      <div key={g.grupoId} className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5">
+                        <input type="radio" name="grupoLagos" checked={grupoLagos === g.grupoId} onChange={() => setGrupoLagos(g.grupoId)} />
+                        {editandoGrupoId === g.grupoId ? (
+                          <>
+                            <input value={nomeGrupoEditado} onChange={(e) => setNomeGrupoEditado(e.target.value)} autoFocus
+                              className="flex-1 bg-white/5 border border-white/10 rounded h-7 px-1.5 text-xs" />
+                            <button onClick={() => salvarNomeGrupo(g.grupoId)} className="text-[11px] text-accent shrink-0">Salvar</button>
+                            <button onClick={() => setEditandoGrupoId(null)} className="text-[11px] text-muted-foreground shrink-0">X</button>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold truncate">{g.nome}</p>
+                              <p className="text-[10px] text-muted-foreground truncate font-mono">{g.grupoId}</p>
+                            </div>
+                            <button onClick={() => { setEditandoGrupoId(g.grupoId); setNomeGrupoEditado(g.nome); }} className="shrink-0 text-muted-foreground hover:text-accent">
+                              <Pencil size={12} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs text-muted-foreground">Instância do WhatsApp</label>
-                  {novaInstanciaAberta ? (
-                    <div className="flex gap-1.5 mt-1">
-                      <input value={novaInstanciaNome} onChange={(e) => setNovaInstanciaNome(e.target.value)} placeholder="Nome (ex: Instância 3)"
-                        className="flex-1 bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
-                      <input value={novaInstanciaValor} onChange={(e) => setNovaInstanciaValor(e.target.value)} placeholder="Nome real na Evolution"
-                        className="flex-1 bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm" />
-                      <button onClick={salvarNovaInstancia} className="h-9 px-3 rounded-lg bg-accent text-white text-xs font-semibold">Salvar</button>
-                      <button onClick={() => setNovaInstanciaAberta(false)} className="h-9 px-2 text-xs text-muted-foreground">Cancelar</button>
-                    </div>
-                  ) : (
-                    <select value={instanciaEscolhida} onChange={(e) => {
-                      if (e.target.value === "__nova__") { setNovaInstanciaAberta(true); return; }
-                      setInstanciaEscolhida(e.target.value);
-                    }} className="w-full bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm mt-1">
-                      {instancias.map((i) => <option key={i.instancia} value={i.instancia}>{i.nome}</option>)}
-                      <option value="__nova__">✏️ Cadastrar nova instância (até 10)</option>
-                    </select>
-                  )}
+                <div className="bg-card border border-border rounded-lg p-3">
+                  <p className="text-xs font-bold text-accent mb-2">Grupos — Rio de Janeiro (escolha 1)</p>
+                  <div className="space-y-1.5">
+                    {grupos.filter((g) => g.regiao === "rio").map((g) => (
+                      <div key={g.grupoId} className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5">
+                        <input type="radio" name="grupoRio" checked={grupoRio === g.grupoId} onChange={() => setGrupoRio(g.grupoId)} />
+                        {editandoGrupoId === g.grupoId ? (
+                          <>
+                            <input value={nomeGrupoEditado} onChange={(e) => setNomeGrupoEditado(e.target.value)} autoFocus
+                              className="flex-1 bg-white/5 border border-white/10 rounded h-7 px-1.5 text-xs" />
+                            <button onClick={() => salvarNomeGrupo(g.grupoId)} className="text-[11px] text-accent shrink-0">Salvar</button>
+                            <button onClick={() => setEditandoGrupoId(null)} className="text-[11px] text-muted-foreground shrink-0">X</button>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold truncate">{g.nome}</p>
+                              <p className="text-[10px] text-muted-foreground truncate font-mono">{g.grupoId}</p>
+                            </div>
+                            <button onClick={() => { setEditandoGrupoId(g.grupoId); setNomeGrupoEditado(g.nome); }} className="shrink-0 text-muted-foreground hover:text-accent">
+                              <Pencil size={12} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              </div>
+
+              <div className="bg-card border border-border rounded-lg p-3 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-bold text-accent">Instâncias do WhatsApp (10 vagas)</p>
+                  <button onClick={salvarInstancias} disabled={salvandoInstancias}
+                    className="h-7 px-3 rounded-lg bg-accent text-white text-[11px] font-semibold disabled:opacity-60">
+                    {salvandoInstancias ? "Salvando..." : "Salvar Instâncias"}
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {instancias.map((inst, idx) => (
+                    <label key={idx} className={`flex items-center gap-1.5 bg-white/5 rounded-lg px-2 py-1.5 ${instanciaEscolhida === inst.instancia && inst.instancia ? "border border-accent" : ""}`}>
+                      <input type="radio" name="instanciaEscolhida" checked={instanciaEscolhida === inst.instancia && !!inst.instancia}
+                        onChange={() => inst.instancia && setInstanciaEscolhida(inst.instancia)} disabled={!inst.instancia} />
+                      <input value={inst.nome} onChange={(e) => atualizarInstancia(idx, "nome", e.target.value)} placeholder="Nome"
+                        className="w-24 bg-transparent text-xs outline-none" />
+                      <input value={inst.instancia} onChange={(e) => atualizarInstancia(idx, "instancia", e.target.value)} placeholder="nome_da_instancia"
+                        className="flex-1 min-w-0 bg-transparent text-xs outline-none font-mono" />
+                    </label>
+                  ))}
+                </div>
+                {msgInstancias && <p className="text-xs mt-2">{msgInstancias}</p>}
               </div>
 
               <button onClick={disparar} disabled={disparando} className="w-full h-12 rounded-lg bg-accent text-white font-bold disabled:opacity-60">
