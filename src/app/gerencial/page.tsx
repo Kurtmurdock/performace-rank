@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sidebar, TopBar, BellButton } from "@/components/Sidebar";
 import { getSessao, chamarApi } from "@/lib/sessao";
-import { ArrowLeft, Lock, Wallet, Check, Upload } from "lucide-react";
+import { ArrowLeft, Lock, Wallet, Check, Upload, RefreshCw } from "lucide-react";
 
 type Comissao = {
   role: string; nome: string; ehCabeca: boolean; valor: string; chavePix: string;
@@ -96,6 +96,14 @@ export default function GerencialPage() {
   const podeAcessar = sessao?.cargo === "gerente" || sessao?.cargo === "gestor";
   const [cards, setCards] = useState<Card[]>([]);
   const [expandidos, setExpandidos] = useState<Set<number>>(new Set());
+  const [atualizandoLinha, setAtualizandoLinha] = useState<string | null>(null);
+
+  const atualizarCard = async (linha: string) => {
+    setAtualizandoLinha(linha);
+    const data = await chamarApi({ acao: "rh_atualizar_mensagem_comissao", linha });
+    if (data && data.ok) recarregarComissoes();
+    setAtualizandoLinha(null);
+  };
   const [carregando, setCarregando] = useState(true);
   const [filtroPago, setFiltroPago] = useState<"" | "pago" | "nao_pago">("");
 
@@ -109,6 +117,19 @@ export default function GerencialPage() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [podeAcessar, filtroPago]);
+
+  // Chamado pelo botão de refresh de um card específico — recarrega a
+  // lista inteira depois, pra já vir com os dados re-processados certos
+  // (comissões, status de pago) sem duplicar a lógica de parse aqui.
+  const recarregarComissoes = () => {
+    if (!podeAcessar) return;
+    setCarregando(true);
+    const lojaFiltro = sessao?.cargo === "gerente" ? sessao?.loja : "";
+    chamarApi({ acao: "rh_listar_comissoes_gerencial", lojaFiltro, filtroPago, limite: 300 }).then((data) => {
+      if (data && data.ok) setCards(data.cards || []);
+      setCarregando(false);
+    });
+  };
 
   const atualizarComissao = (cardIdx: number, role: string, novo: Comissao) => {
     setCards((cs) => cs.map((c, i) => i === cardIdx
@@ -172,7 +193,17 @@ export default function GerencialPage() {
               <div key={idx} className="bg-card border border-border rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-accent">{card.destino}</span>
-                  <span className="text-[11px] text-muted-foreground">{formatarDataHora(card.dataHora)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{formatarDataHora(card.dataHora)}</span>
+                    <button
+                      onClick={() => atualizarCard(card.linha)}
+                      disabled={atualizandoLinha === card.linha}
+                      title="Reler os dados atuais da planilha e corrigir esse card"
+                      className="text-muted-foreground hover:text-accent disabled:opacity-50"
+                    >
+                      <RefreshCw size={13} className={atualizandoLinha === card.linha ? "animate-spin" : ""} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Texto completo da mensagem — igual sempre foi, sem cortar nada */}
