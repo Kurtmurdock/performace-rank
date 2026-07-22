@@ -5,9 +5,11 @@ import { Sidebar, TopBar, BellButton } from "@/components/Sidebar";
 import { GlowCard } from "@/components/ui/spotlight-card";
 import { FiltroDropdown } from "@/components/FiltroDropdown";
 import { chamarApi, getSessao } from "@/lib/sessao";
-import { Search, Pencil, Camera, X, ArrowLeft, Plus, ChevronLeft, ChevronRight, Lock, Eye } from "lucide-react";
+import { Search, Pencil, Camera, X, ArrowLeft, Plus, ChevronLeft, ChevronRight, Lock, Eye, CheckSquare, FileScan } from "lucide-react";
 import { EditarMotoModal, EnviarFotosModal } from "@/components/EditarMotoModal";
 import { CadastrarMotoModal } from "@/components/CadastrarMotoModal";
+import { AtualizarViaCrlvModal } from "@/components/AtualizarViaCrlvModal";
+import { AtualizarLoteCrlvModal } from "@/components/AtualizarLoteCrlvModal";
 import { VerDadosVendaModal } from "@/components/VerDadosVendaModal";
 import { useConfigVisual } from "@/lib/useConfigVisual";
 
@@ -104,7 +106,15 @@ export default function EstoquePage() {
   const [motoEditando, setMotoEditando] = useState<Moto | null>(null);
   const [motoFotos, setMotoFotos] = useState<Moto | null>(null);
   const [motoVerVenda, setMotoVerVenda] = useState<Moto | null>(null);
+  const [atualizarCrlvAberto, setAtualizarCrlvAberto] = useState(false);
+  const [atualizarLoteCrlvAberto, setAtualizarLoteCrlvAberto] = useState(false);
   const [cadastrando, setCadastrando] = useState(false);
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [selecionadas, setSelecionadas] = useState<Set<number>>(new Set());
+  const [loteChao, setLoteChao] = useState("");
+  const [loteStatus, setLoteStatus] = useState("");
+  const [aplicandoLote, setAplicandoLote] = useState(false);
+  const [msgLote, setMsgLote] = useState("");
   const sessao = getSessao();
   // Exceção especial: "vendedor1" tem a mesma liberdade de editar que um
   // gerente, mas continua aparecendo como "vendedor" em todo o site —
@@ -242,7 +252,23 @@ export default function EstoquePage() {
       : "✅ DISPONÍVEL";
 
     return (
-      <GlowCard glowColor={corDoStatus(moto.status)} className="p-4 h-full flex flex-col">
+      <GlowCard glowColor={corDoStatus(moto.status)} className="p-4 h-full flex flex-col relative">
+        {modoSelecao && (
+          <label className="absolute top-3 left-3 z-10 w-6 h-6 rounded-md bg-black/60 flex items-center justify-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={selecionadas.has(moto.linha)}
+              onChange={() => {
+                setSelecionadas((s) => {
+                  const novo = new Set(s);
+                  if (novo.has(moto.linha)) novo.delete(moto.linha); else novo.add(moto.linha);
+                  return novo;
+                });
+              }}
+              className="w-4 h-4"
+            />
+          </label>
+        )}
         {moto.fotos && moto.fotos.length > 0 && <CarrosselFotos fotos={moto.fotos} />}
 
         <div className="flex items-center justify-between mb-1">
@@ -366,6 +392,28 @@ export default function EstoquePage() {
 
   const configVisual = useConfigVisual("estoque");
 
+  const aplicarLote = async () => {
+    if (!loteChao && !loteStatus) { setMsgLote("❌ Escolha ao menos um campo pra alterar."); return; }
+    setAplicandoLote(true);
+    setMsgLote("");
+    const data = await chamarApi({
+      acao: "rh_editar_lote_moto",
+      gerente: JSON.parse(localStorage.getItem("performace_sessao") || "{}").nome,
+      linhas: Array.from(selecionadas),
+      novoChao: loteChao || undefined,
+      novoStatus: loteStatus || undefined,
+    });
+    if (data && data.ok) {
+      setMsgLote(`✅ ${data.sucesso} moto(s) atualizada(s)${data.falhas?.length ? `, ${data.falhas.length} falharam` : ""}.`);
+      setSelecionadas(new Set());
+      setLoteChao(""); setLoteStatus("");
+      carregar();
+    } else {
+      setMsgLote("❌ " + ((data && data.erro) || "Erro ao aplicar em lote."));
+    }
+    setAplicandoLote(false);
+  };
+
   return (
     <main
       className="min-h-screen bg-background text-foreground px-4 py-8 md:px-10 relative"
@@ -392,10 +440,24 @@ export default function EstoquePage() {
               <ArrowLeft size={15} /> Voltar ao Rank
             </a>
             {podeEditar && (
-              <button onClick={() => setCadastrando(true)}
-                className="h-10 px-4 rounded-lg bg-accent text-white font-bold text-sm flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity">
-                <Plus size={15} /> Cadastrar Novo Veículo
-              </button>
+              <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+                <button onClick={() => { setModoSelecao((m) => !m); setSelecionadas(new Set()); }}
+                  className={`h-10 px-4 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors ${modoSelecao ? "bg-accent text-white" : "bg-white/5 border border-white/10 hover:border-accent"}`}>
+                  <CheckSquare size={15} /> {modoSelecao ? "Cancelar seleção" : "Selecionar várias"}
+                </button>
+                <button onClick={() => setAtualizarCrlvAberto(true)}
+                  className="h-10 px-4 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold flex items-center gap-2 hover:border-accent transition-colors">
+                  <FileScan size={15} /> Atualizar via CRLV
+                </button>
+                <button onClick={() => setAtualizarLoteCrlvAberto(true)}
+                  className="h-10 px-4 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold flex items-center gap-2 hover:border-accent transition-colors">
+                  <FileScan size={15} /> Atualizar em Lote
+                </button>
+                <button onClick={() => setCadastrando(true)}
+                  className="h-10 px-4 rounded-lg bg-accent text-white font-bold text-sm flex items-center gap-2 hover:opacity-90 transition-opacity">
+                  <Plus size={15} /> Cadastrar Novo Veículo
+                </button>
+              </div>
             )}
           </div>
 
@@ -478,6 +540,31 @@ export default function EstoquePage() {
       {motoFotos && <EnviarFotosModal moto={motoFotos} onClose={() => setMotoFotos(null)} />}
       {cadastrando && <CadastrarMotoModal onClose={() => setCadastrando(false)} onSalvo={carregar} />}
       {motoVerVenda && <VerDadosVendaModal linha={motoVerVenda.linha} onClose={() => setMotoVerVenda(null)} />}
+      {atualizarCrlvAberto && <AtualizarViaCrlvModal onClose={() => setAtualizarCrlvAberto(false)} onSalvo={carregar} />}
+      {atualizarLoteCrlvAberto && <AtualizarLoteCrlvModal onClose={() => setAtualizarLoteCrlvAberto(false)} onSalvo={carregar} />}
+
+      {modoSelecao && selecionadas.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-accent/40 p-4 shadow-2xl">
+          <div className="max-w-4xl mx-auto flex flex-wrap items-center gap-3">
+            <span className="text-sm font-bold shrink-0">{selecionadas.size} selecionada(s)</span>
+            <select value={loteChao} onChange={(e) => setLoteChao(e.target.value)}
+              className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm">
+              <option value="">Mudar chão para...</option>
+              {LOJAS.map((l) => <option key={l} value={l}>{l}</option>)}
+            </select>
+            <select value={loteStatus} onChange={(e) => setLoteStatus(e.target.value)}
+              className="bg-white/5 border border-white/10 rounded-lg h-9 px-2 text-sm">
+              <option value="">Mudar status para...</option>
+              <option value="✅ Disponível">✅ Disponível</option>
+            </select>
+            <button onClick={aplicarLote} disabled={aplicandoLote}
+              className="h-9 px-4 rounded-lg bg-accent text-white text-sm font-semibold disabled:opacity-60">
+              {aplicandoLote ? "Aplicando..." : "Aplicar"}
+            </button>
+            {msgLote && <span className="text-xs">{msgLote}</span>}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
