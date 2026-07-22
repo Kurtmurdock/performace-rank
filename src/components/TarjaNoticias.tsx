@@ -14,13 +14,26 @@ const INTERVALO_MS = 45000;
 export function TarjaNoticias() {
   const [eventos, setEventos] = useState<EventoTarja[]>([]);
   const [carregado, setCarregado] = useState(false);
+  const [erro, setErro] = useState("");
   const sessao = getSessao();
 
   useEffect(() => {
     if (!sessao) return;
     const carregar = () => {
       chamarApi({ acao: "rh_tarja_noticias" }).then((data) => {
-        if (data && data.ok) setEventos(data.eventos || []);
+        if (data && data.ok) {
+          setEventos(data.eventos || []);
+          setErro("");
+        } else {
+          // Diferencia "de verdade sem novidade" de "a chamada falhou" —
+          // antes os dois casos ficavam idênticos na tela, escondendo erro.
+          setErro((data && data.erro) || "Não consegui carregar (sem resposta do servidor).");
+          console.error("rh_tarja_noticias falhou:", data);
+        }
+        setCarregado(true);
+      }).catch((e) => {
+        setErro("Erro de conexão: " + String(e));
+        console.error("rh_tarja_noticias erro de rede:", e);
         setCarregado(true);
       });
     };
@@ -39,6 +52,8 @@ export function TarjaNoticias() {
       <div className="flex-1 overflow-hidden px-3 whitespace-nowrap text-ellipsis">
         {!carregado ? (
           <span className="text-[11px] text-white/50">Carregando novidades...</span>
+        ) : erro ? (
+          <span className="text-[11px] text-red-400">⚠️ {erro}</span>
         ) : eventos.length === 0 ? (
           <span className="text-[11px] text-white/50">📡 Nenhuma novidade nas últimas 24 horas.</span>
         ) : (
