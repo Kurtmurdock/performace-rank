@@ -5,7 +5,7 @@ import { X, Plus, Upload, FileText, Search } from "lucide-react";
 import { chamarApi, getSessao } from "@/lib/sessao";
 
 const CARGOS = ["vendedor", "gerente", "gestor"];
-const LOJAS = ["Salinas","Atlântica","União Motos","Maré Motos","Muralha","PQD Motos","Rio das Ostras","Vision","Confort","Império","Infinity","Baby Motos"];
+const LOJAS = ["Salinas","Atlântica","União Motos","Maré Motos","Muralha","PQD Motos","Bang","Capri","Vision","Confort","Império","Infinity","Baby Motos"];
 
 type Pessoa = { nome: string; telefone: string; cargo?: string; loja?: string };
 type EventoEditavel = {

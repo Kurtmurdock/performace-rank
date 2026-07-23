@@ -26,7 +26,7 @@ type Moto = {
 
 type ItemTabela = { chave: string; preco: number };
 
-const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Rio das Ostras","Infinity","Baby Motos","Em Transporte"];
+const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Bang","Capri","Infinity","Baby Motos","Em Transporte"];
 const FORNECEDORES = ["ALEXANDRE&ALAN","CLEBER","MARCIO","GIRO","LOCAMERICA","FELIPPE","MARCUS","VICTOR","BOMCAR","FLUTUANTE"];
 const MARCAS = ["YAMAHA","HONDA","SHINERAY"];
 const BANCOS = ["A VISTA","BRADESCO LOC","BV AUTOMODELO","BV BOMCAR","BV CLEBER","BV CONFORT","BV LELE","BV SALINAS","BV VISION","PAN AUTOMODELO","PAN CFT","PAN UNIÃO","PAN VISION","SANT ATLÂNTICA","SANT LELE","SANT SALINAS","SANT UNIÃO"];

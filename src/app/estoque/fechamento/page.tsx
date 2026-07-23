@@ -9,7 +9,7 @@ import { ClienteBusca, type Cliente } from "@/components/ClienteBusca";
 import { FormasPagamentoEditor, type FormaPagamento } from "@/components/FormasPagamentoEditor";
 import { SelectComOutro } from "@/components/SelectComOutro";
 
-const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Rio das Ostras","Infinity","Baby Motos"];
+const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Bang","Capri","Infinity","Baby Motos"];
 const NOMES_SDR = ["Giovana", "Ana Clara", "Thayna", "Patricia"];
 
 type Moto = {

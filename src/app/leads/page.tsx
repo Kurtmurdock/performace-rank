@@ -8,9 +8,28 @@ import { ArrowLeft, Upload, Pencil } from "lucide-react";
 import { useConfigVisual } from "@/lib/useConfigVisual";
 
 type Lead = { id: number; nome: string; telefone: string; regiao: "rio" | "lagos" };
-type GrupoLead = { regiao: string; nome: string; grupoId: string };
-type Instancia = { nome: string; instancia: string };
 const DDDS_RIO = ["21"];
+
+// IDs fixos direto no código — nada mais depende de buscar uma lista do
+// backend (o sistema anterior baseado em aba própria travava
+// misteriosamente). Só o APELIDO de cada um é salvo/lido do servidor.
+const GRUPOS_LAGOS = [
+  { id: "120363426289293171@g.us", nomePadrao: "Grupo Lagos 1" },
+  { id: "120363423681410822@g.us", nomePadrao: "Atlantica leads" },
+  { id: "120363422534407098@g.us", nomePadrao: "Leads Salinas" },
+  { id: "120363410239286394@g.us", nomePadrao: "LEADS CAPRI" },
+  { id: "120363409341996576@g.us", nomePadrao: "LEADS BANG" },
+];
+const GRUPOS_RIO = [
+  { id: "120363402345757487@g.us", nomePadrao: "LEADS VISION" },
+  { id: "120363288601507294@g.us", nomePadrao: "Grupo Rio 2" },
+];
+const INSTANCIAS_PADRAO = [
+  { chave: "atlantica_teste2", nomePadrao: "Atlântica Teste 2" },
+  { chave: "atlantica eventos", nomePadrao: "Atlântica Eventos" },
+  { chave: "INSTANCIA3", nomePadrao: "Instância 3" },
+  { chave: "INSTACIA4", nomePadrao: "Instância 4" },
+];
 
 export default function LeadsPage() {
   const sessao = getSessao();
@@ -19,70 +38,38 @@ export default function LeadsPage() {
   const [status, setStatus] = useState("");
   const [disparando, setDisparando] = useState(false);
 
-  // Grupo de destino por REGIÃO (um pra Lagos, outro pro Rio — já que os
-  // leads já são separados por região automaticamente) e instância do
-  // WhatsApp — antes era sorteio aleatório entre os grupos; agora o Alan
-  // escolhe, com nome editável (ele ainda tá descobrindo qual grupo é de
-  // qual loja) e o código de contato sempre visível.
-  const [grupos, setGrupos] = useState<GrupoLead[]>([]);
-  const [grupoLagos, setGrupoLagos] = useState("");
-  const [grupoRio, setGrupoRio] = useState("");
-  const [editandoGrupoId, setEditandoGrupoId] = useState<string | null>(null);
-  const [nomeGrupoEditado, setNomeGrupoEditado] = useState("");
-
-  // 10 vagas fixas de instância — as 2 primeiras já conhecidas, as outras
-  // 8 o Alan preenche conforme for criando novas.
-  const [instancias, setInstancias] = useState<Instancia[]>([]);
-  const [instanciaEscolhida, setInstanciaEscolhida] = useState("");
-  const [salvandoInstancias, setSalvandoInstancias] = useState(false);
-  const [msgInstancias, setMsgInstancias] = useState("");
+  // Nomes personalizados (apelido de cada grupo/instância) — vem do
+  // servidor numa única chamada simples (chave→nome), sem precisar
+  // buscar lista nenhuma. Os IDs em si já estão fixos no código acima.
+  const [nomesPersonalizados, setNomesPersonalizados] = useState<Record<string, string>>({});
+  const [gruposLagosSelecionados, setGruposLagosSelecionados] = useState<Set<string>>(new Set());
+  const [gruposRioSelecionados, setGruposRioSelecionados] = useState<Set<string>>(new Set());
+  const [instanciaEscolhida, setInstanciaEscolhida] = useState("atlantica eventos");
+  const [editandoChave, setEditandoChave] = useState<string | null>(null);
+  const [nomeEditado, setNomeEditado] = useState("");
 
   useEffect(() => {
-    chamarApi({ acao: "evo_listar_grupos_leads" }).then((data) => {
-      if (data && data.ok) {
-        const lista: GrupoLead[] = data.grupos || [];
-        setGrupos(lista);
-        const primeiroLagos = lista.find((g) => g.regiao === "lagos");
-        const primeiroRio = lista.find((g) => g.regiao === "rio");
-        if (primeiroLagos) setGrupoLagos(primeiroLagos.grupoId);
-        if (primeiroRio) setGrupoRio(primeiroRio.grupoId);
-      }
-    });
-    chamarApi({ acao: "evo_listar_instancias" }).then((data) => {
-      if (data && data.ok) {
-        setInstancias(data.instancias || []);
-        const lista: Instancia[] = data.instancias || [];
-        // "atlantica eventos" é a única conectada agora — vem selecionada
-        // por padrão, pra evitar disparo falhar por instância desconectada.
-        const preferida = lista.find((i) => i.instancia === "atlantica eventos") || lista.find((i) => i.instancia);
-        if (preferida) setInstanciaEscolhida(preferida.instancia);
-      }
+    chamarApi({ acao: "evo_obter_nomes_personalizados" }).then((data) => {
+      if (data && data.ok) setNomesPersonalizados(data.nomes || {});
     });
   }, []);
 
-  const salvarNomeGrupo = async (grupoId: string) => {
-    if (!nomeGrupoEditado.trim()) return;
-    await chamarApi({ acao: "evo_renomear_grupo_leads", grupoId, novoNome: nomeGrupoEditado.trim() });
-    setGrupos((gs) => gs.map((g) => g.grupoId === grupoId ? { ...g, nome: nomeGrupoEditado.trim() } : g));
-    setEditandoGrupoId(null);
+  const nomeExibido = (chave: string, nomePadrao: string) => nomesPersonalizados[chave] || nomePadrao;
+
+  const salvarNome = async (chave: string) => {
+    if (!nomeEditado.trim()) return;
+    await chamarApi({ acao: "evo_salvar_nome_personalizado", chave, nome: nomeEditado.trim() });
+    setNomesPersonalizados((n) => ({ ...n, [chave]: nomeEditado.trim() }));
+    setEditandoChave(null);
   };
 
-  const atualizarInstancia = (idx: number, campo: "nome" | "instancia", valor: string) => {
-    setInstancias((is) => is.map((item, i) => i === idx ? { ...item, [campo]: valor } : item));
-  };
-
-  const salvarInstancias = async () => {
-    setSalvandoInstancias(true);
-    setMsgInstancias("");
-    const data = await chamarApi({ acao: "evo_salvar_todas_instancias", instancias });
-    if (data && data.ok) {
-      setMsgInstancias("✅ Instâncias salvas!");
-      const primeiraComValor = instancias.find((i) => i.instancia);
-      if (primeiraComValor && !instanciaEscolhida) setInstanciaEscolhida(primeiraComValor.instancia);
-    } else {
-      setMsgInstancias("❌ " + ((data && data.erro) || "Erro ao salvar."));
-    }
-    setSalvandoInstancias(false);
+  const alternarGrupo = (regiao: "lagos" | "rio", id: string) => {
+    const setter = regiao === "lagos" ? setGruposLagosSelecionados : setGruposRioSelecionados;
+    setter((prev) => {
+      const novo = new Set(prev);
+      novo.has(id) ? novo.delete(id) : novo.add(id);
+      return novo;
+    });
   };
 
   const processarArquivo = (file: File) => {
@@ -122,15 +109,38 @@ export default function LeadsPage() {
     if (!escolhidos.length) return;
     setDisparando(true);
     let enviados = 0;
+    let falhasTotal = 0;
+    const primeirosErros: string[] = [];
     const TAMANHO_LOTE = 50;
     for (let i = 0; i < escolhidos.length; i += TAMANHO_LOTE) {
       const lote = escolhidos.slice(i, i + TAMANHO_LOTE);
       setStatus(`Enviando... (${enviados}/${escolhidos.length})`);
-      const data = await chamarApi({ acao: "evo_disparar_leads", leads: lote, grupoLagos, grupoRio, instancia: instanciaEscolhida });
-      if (data && data.ok) enviados += data.enviados || lote.length;
-      else { setStatus("❌ " + ((data && data.erro) || "Erro no disparo.")); setDisparando(false); return; }
+      const data = await chamarApi({
+        acao: "evo_disparar_leads", leads: lote,
+        gruposLagos: Array.from(gruposLagosSelecionados),
+        gruposRio: Array.from(gruposRioSelecionados),
+        instancia: instanciaEscolhida,
+      });
+      if (data && data.ok) {
+        // Bug real corrigido: "0 enviados" é um número válido (tudo falhou),
+        // mas "0 || lote.length" em JS trata 0 como vazio e cai no total do
+        // lote — escondia falha total mostrando "concluído" enganosamente.
+        enviados += data.enviados ?? 0;
+        if (data.falhas?.length) {
+          falhasTotal += data.falhas.length;
+          data.falhas.slice(0, 3).forEach((f: { nome: string; erro: string }) => primeirosErros.push(`${f.nome}: ${f.erro}`));
+        }
+      } else {
+        setStatus("❌ " + ((data && data.erro) || "Erro no disparo."));
+        setDisparando(false);
+        return;
+      }
     }
-    setStatus(`✅ Concluído (${enviados} enviados)`);
+    if (falhasTotal > 0) {
+      setStatus(`⚠️ ${enviados} enviados, ${falhasTotal} falharam. Exemplos: ${primeirosErros.join(" | ")}`);
+    } else {
+      setStatus(`✅ Concluído (${enviados} enviados)`);
+    }
     setDisparando(false);
   };
 
@@ -216,25 +226,25 @@ export default function LeadsPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="bg-card border border-border rounded-lg p-3">
-                  <p className="text-xs font-bold text-accent mb-2">Grupos — Lagos (escolha 1)</p>
+                  <p className="text-xs font-bold text-accent mb-2">Grupos — Lagos (marque um ou mais)</p>
                   <div className="space-y-1.5">
-                    {grupos.filter((g) => g.regiao === "lagos").map((g) => (
-                      <div key={g.grupoId} className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5">
-                        <input type="radio" name="grupoLagos" checked={grupoLagos === g.grupoId} onChange={() => setGrupoLagos(g.grupoId)} />
-                        {editandoGrupoId === g.grupoId ? (
+                    {GRUPOS_LAGOS.map((g) => (
+                      <div key={g.id} className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5">
+                        <input type="checkbox" checked={gruposLagosSelecionados.has(g.id)} onChange={() => alternarGrupo("lagos", g.id)} />
+                        {editandoChave === g.id ? (
                           <>
-                            <input value={nomeGrupoEditado} onChange={(e) => setNomeGrupoEditado(e.target.value)} autoFocus
+                            <input value={nomeEditado} onChange={(e) => setNomeEditado(e.target.value)} autoFocus
                               className="flex-1 bg-white/5 border border-white/10 rounded h-7 px-1.5 text-xs" />
-                            <button onClick={() => salvarNomeGrupo(g.grupoId)} className="text-[11px] text-accent shrink-0">Salvar</button>
-                            <button onClick={() => setEditandoGrupoId(null)} className="text-[11px] text-muted-foreground shrink-0">X</button>
+                            <button onClick={() => salvarNome(g.id)} className="text-[11px] text-accent shrink-0">Salvar</button>
+                            <button onClick={() => setEditandoChave(null)} className="text-[11px] text-muted-foreground shrink-0">X</button>
                           </>
                         ) : (
                           <>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold truncate">{g.nome}</p>
-                              <p className="text-[10px] text-muted-foreground truncate font-mono">{g.grupoId}</p>
+                              <p className="text-xs font-semibold truncate">{nomeExibido(g.id, g.nomePadrao)}</p>
+                              <p className="text-[10px] text-muted-foreground truncate font-mono">{g.id}</p>
                             </div>
-                            <button onClick={() => { setEditandoGrupoId(g.grupoId); setNomeGrupoEditado(g.nome); }} className="shrink-0 text-muted-foreground hover:text-accent">
+                            <button onClick={() => { setEditandoChave(g.id); setNomeEditado(nomeExibido(g.id, g.nomePadrao)); }} className="shrink-0 text-muted-foreground hover:text-accent">
                               <Pencil size={12} />
                             </button>
                           </>
@@ -245,25 +255,25 @@ export default function LeadsPage() {
                 </div>
 
                 <div className="bg-card border border-border rounded-lg p-3">
-                  <p className="text-xs font-bold text-accent mb-2">Grupos — Rio de Janeiro (escolha 1)</p>
+                  <p className="text-xs font-bold text-accent mb-2">Grupos — Rio de Janeiro (marque um ou mais)</p>
                   <div className="space-y-1.5">
-                    {grupos.filter((g) => g.regiao === "rio").map((g) => (
-                      <div key={g.grupoId} className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5">
-                        <input type="radio" name="grupoRio" checked={grupoRio === g.grupoId} onChange={() => setGrupoRio(g.grupoId)} />
-                        {editandoGrupoId === g.grupoId ? (
+                    {GRUPOS_RIO.map((g) => (
+                      <div key={g.id} className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5">
+                        <input type="checkbox" checked={gruposRioSelecionados.has(g.id)} onChange={() => alternarGrupo("rio", g.id)} />
+                        {editandoChave === g.id ? (
                           <>
-                            <input value={nomeGrupoEditado} onChange={(e) => setNomeGrupoEditado(e.target.value)} autoFocus
+                            <input value={nomeEditado} onChange={(e) => setNomeEditado(e.target.value)} autoFocus
                               className="flex-1 bg-white/5 border border-white/10 rounded h-7 px-1.5 text-xs" />
-                            <button onClick={() => salvarNomeGrupo(g.grupoId)} className="text-[11px] text-accent shrink-0">Salvar</button>
-                            <button onClick={() => setEditandoGrupoId(null)} className="text-[11px] text-muted-foreground shrink-0">X</button>
+                            <button onClick={() => salvarNome(g.id)} className="text-[11px] text-accent shrink-0">Salvar</button>
+                            <button onClick={() => setEditandoChave(null)} className="text-[11px] text-muted-foreground shrink-0">X</button>
                           </>
                         ) : (
                           <>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold truncate">{g.nome}</p>
-                              <p className="text-[10px] text-muted-foreground truncate font-mono">{g.grupoId}</p>
+                              <p className="text-xs font-semibold truncate">{nomeExibido(g.id, g.nomePadrao)}</p>
+                              <p className="text-[10px] text-muted-foreground truncate font-mono">{g.id}</p>
                             </div>
-                            <button onClick={() => { setEditandoGrupoId(g.grupoId); setNomeGrupoEditado(g.nome); }} className="shrink-0 text-muted-foreground hover:text-accent">
+                            <button onClick={() => { setEditandoChave(g.id); setNomeEditado(nomeExibido(g.id, g.nomePadrao)); }} className="shrink-0 text-muted-foreground hover:text-accent">
                               <Pencil size={12} />
                             </button>
                           </>
@@ -275,26 +285,32 @@ export default function LeadsPage() {
               </div>
 
               <div className="bg-card border border-border rounded-lg p-3 mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-bold text-accent">Instâncias do WhatsApp (10 vagas)</p>
-                  <button onClick={salvarInstancias} disabled={salvandoInstancias}
-                    className="h-7 px-3 rounded-lg bg-accent text-white text-[11px] font-semibold disabled:opacity-60">
-                    {salvandoInstancias ? "Salvando..." : "Salvar Instâncias"}
-                  </button>
-                </div>
+                <p className="text-xs font-bold text-accent mb-2">Instância do WhatsApp (escolha 1)</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                  {instancias.map((inst, idx) => (
-                    <label key={idx} className={`flex items-center gap-1.5 bg-white/5 rounded-lg px-2 py-1.5 ${instanciaEscolhida === inst.instancia && inst.instancia ? "border border-accent" : ""}`}>
-                      <input type="radio" name="instanciaEscolhida" checked={instanciaEscolhida === inst.instancia && !!inst.instancia}
-                        onChange={() => inst.instancia && setInstanciaEscolhida(inst.instancia)} disabled={!inst.instancia} />
-                      <input value={inst.nome} onChange={(e) => atualizarInstancia(idx, "nome", e.target.value)} placeholder="Nome"
-                        className="w-24 bg-transparent text-xs outline-none" />
-                      <input value={inst.instancia} onChange={(e) => atualizarInstancia(idx, "instancia", e.target.value)} placeholder="nome_da_instancia"
-                        className="flex-1 min-w-0 bg-transparent text-xs outline-none font-mono" />
-                    </label>
+                  {INSTANCIAS_PADRAO.map((inst) => (
+                    <div key={inst.chave} className={`flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5 ${instanciaEscolhida === inst.chave ? "border border-accent" : ""}`}>
+                      <input type="radio" name="instanciaEscolhida" checked={instanciaEscolhida === inst.chave} onChange={() => setInstanciaEscolhida(inst.chave)} />
+                      {editandoChave === inst.chave ? (
+                        <>
+                          <input value={nomeEditado} onChange={(e) => setNomeEditado(e.target.value)} autoFocus
+                            className="flex-1 bg-white/5 border border-white/10 rounded h-7 px-1.5 text-xs" />
+                          <button onClick={() => salvarNome(inst.chave)} className="text-[11px] text-accent shrink-0">Salvar</button>
+                          <button onClick={() => setEditandoChave(null)} className="text-[11px] text-muted-foreground shrink-0">X</button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold truncate">{nomeExibido(inst.chave, inst.nomePadrao)}</p>
+                            <p className="text-[10px] text-muted-foreground truncate font-mono">{inst.chave}</p>
+                          </div>
+                          <button onClick={() => { setEditandoChave(inst.chave); setNomeEditado(nomeExibido(inst.chave, inst.nomePadrao)); }} className="shrink-0 text-muted-foreground hover:text-accent">
+                            <Pencil size={12} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   ))}
                 </div>
-                {msgInstancias && <p className="text-xs mt-2">{msgInstancias}</p>}
               </div>
 
               <button onClick={disparar} disabled={disparando} className="w-full h-12 rounded-lg bg-accent text-white font-bold disabled:opacity-60">

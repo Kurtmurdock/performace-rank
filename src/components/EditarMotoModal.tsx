@@ -15,7 +15,7 @@ type Moto = {
   manual?: string; ondeManual?: string; chaveReserva?: string; ondeChaveReserva?: string; ondePlaca?: string;
 };
 
-const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Rio das Ostras","Infinity","Baby Motos"];
+const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Bang","Capri","Infinity","Baby Motos"];
 const FORNECEDORES = ["ALEXANDRE&ALAN","CLEBER","MARCIO","GIRO","LOCAMERICA","FELIPPE","MARCUS","VICTOR","BOMCAR","FLUTUANTE"];
 
 function CampoTravavel({
@@ -189,7 +189,9 @@ export function EditarMotoModal({
 
             {(statusEscolhido === "negociacao" || statusEscolhido === "vendido") && (
               <div className="mt-3">
-                <label className="text-xs text-muted-foreground">Chão</label>
+                <label className="text-xs text-muted-foreground">
+                  {statusEscolhido === "vendido" ? "Vendido" : statusEscolhido === "negociacao" ? "Em Negociação" : "Chão"}
+                </label>
                 {lojaStatusOutro ? (
                   <div className="flex gap-1.5 mt-1">
                     <input

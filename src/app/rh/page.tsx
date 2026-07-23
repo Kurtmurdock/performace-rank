@@ -8,7 +8,7 @@ import { ArrowLeft, Plus, X, KeyRound } from "lucide-react";
 import { useConfigVisual } from "@/lib/useConfigVisual";
 
 type Pessoa = { nome: string; email: string; telefone: string; cargo: string; loja: string; cadastradoPor: string };
-const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Rio das Ostras","Infinity"];
+const LOJAS = ["Salinas","Atlântica","União Motos","Vision","Maré Motos","Muralha","Império","Confort","PQD Motos","Bang","Capri","Infinity"];
 
 export default function RhPage() {
   const sessao = getSessao();
