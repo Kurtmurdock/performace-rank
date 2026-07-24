@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sidebar, TopBar, BellButton } from "@/components/Sidebar";
 import { getSessao, chamarApi } from "@/lib/sessao";
-import { ArrowLeft, Lock, Wallet, Check, Upload, RefreshCw } from "lucide-react";
+import { ArrowLeft, Lock, Wallet, Check, Upload, RefreshCw, Send } from "lucide-react";
 
 type Comissao = {
   role: string; nome: string; ehCabeca: boolean; valor: string; chavePix: string;
@@ -104,6 +104,15 @@ export default function GerencialPage() {
     if (data && data.ok) recarregarComissoes();
     setAtualizandoLinha(null);
   };
+
+  // Botão verde exclusivo — só dispara a mensagem de novo no WhatsApp
+  // (sem recalcular nada), visível só pra "Alan Lima".
+  const [disparandoLinha, setDisparandoLinha] = useState<string | null>(null);
+  const reenviarWpp = async (linha: string) => {
+    setDisparandoLinha(linha);
+    await chamarApi({ acao: "rh_reenviar_comissao_wpp", linha });
+    setDisparandoLinha(null);
+  };
   const [carregando, setCarregando] = useState(true);
   const [filtroPago, setFiltroPago] = useState<"" | "pago" | "nao_pago">("");
 
@@ -195,6 +204,16 @@ export default function GerencialPage() {
                   <span className="text-xs font-semibold text-accent">{card.destino}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{formatarDataHora(card.dataHora)}</span>
+                    {sessao?.nome?.toLowerCase() === "alan lima" && (
+                      <button
+                        onClick={() => reenviarWpp(card.linha)}
+                        disabled={disparandoLinha === card.linha}
+                        title="Disparar essa comissão de novo no WhatsApp (sem recalcular)"
+                        className="text-green-400 hover:text-green-300 disabled:opacity-50"
+                      >
+                        <Send size={13} />
+                      </button>
+                    )}
                     <button
                       onClick={() => atualizarCard(card.linha)}
                       disabled={atualizandoLinha === card.linha}
